@@ -1,0 +1,15 @@
+bin
+obj
+*.suo
+*.user
+*.pidb
+*.userprefs
+*.xml
+*.nupkg
+**/test-results/*
+*Resharper*
+Test/*.dll
+Test/*.mdb
+Test/*.pdb
+packages/*
+!packages/repositories.config

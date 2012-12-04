@@ -1,0 +1,95 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using Mono.Cecil;
+using Mono.Cecil.Cil;
+using Mono.Cecil.Mdb;
+using Mono.Cecil.Pdb;
+using Mono.Collections.Generic;
+
+namespace Unity.ReferenceRewriter
+{
+	public class RewriteContext
+	{
+		public bool RewriteTarget { get; set; }
+		public ModuleDefinition TargetModule { get; private set; }
+		public ModuleDefinition SupportModule { get; private set; }
+		public string FrameworkPath { get; private set; }
+		public IAssemblyResolver AssemblyResolver { get; private set; }
+		public Collection<string> StrongNameReferences { get; private set; }
+		public DebugSymbolFormat DebugSymbolFormat { get; private set; }
+
+		class RewriteResolver : DefaultAssemblyResolver
+		{
+			public RewriteResolver(string targetModule, string frameworkPath)
+			{
+				AddSearchDirectory(Path.GetDirectoryName(targetModule));
+				AddSearchDirectory(frameworkPath);
+			}
+
+			public void RegisterSupportAssembly(AssemblyDefinition assembly)
+			{
+				RegisterAssembly(assembly);
+			}
+		}
+
+		public static RewriteContext For(string targetModule, DebugSymbolFormat symbolFormat, string supportModule, string frameworkPath, ICollection<string> strongNamedReferences)
+		{
+			if (targetModule == null)
+				throw new ArgumentNullException("targetModule");
+			if (supportModule == null)
+				throw new ArgumentNullException("supportModule");
+			CheckFrameworkPath(frameworkPath);
+
+			var resolver = new RewriteResolver(targetModule, Path.GetFullPath(frameworkPath));
+			var support = ModuleDefinition.ReadModule(supportModule, new ReaderParameters {AssemblyResolver = resolver});
+			resolver.RegisterSupportAssembly(support.Assembly);
+
+			return new RewriteContext
+			{
+				TargetModule = ModuleDefinition.ReadModule(targetModule, TargetModuleParameters(targetModule, symbolFormat, resolver)),
+				SupportModule = support,
+				FrameworkPath = frameworkPath,
+				AssemblyResolver = resolver,
+				StrongNameReferences = new Collection<string>(strongNamedReferences),
+				DebugSymbolFormat = symbolFormat,
+			};
+		}
+
+		private static void CheckFrameworkPath(string frameworkPath)
+		{
+			if (frameworkPath == null)
+				throw new ArgumentNullException("frameworkPath");
+			if (string.IsNullOrEmpty(frameworkPath))
+				throw new ArgumentException("Empty framework path", "frameworkPath");
+			if (!Directory.Exists(frameworkPath))
+				throw new ArgumentException("Reference path doesn't exist.", "frameworkPath");
+			if (!File.Exists(Path.Combine(frameworkPath, "mscorlib.dll")))
+				throw new ArgumentException("No mscorlib.dll in the framework path.", "frameworkPath");
+		}
+
+		private static ReaderParameters TargetModuleParameters(string targetModule, DebugSymbolFormat symbolFormat, RewriteResolver resolver)
+		{
+			var targetParameters = new ReaderParameters { AssemblyResolver = resolver };
+
+			if (File.Exists(Path.ChangeExtension(targetModule, ".pdb")) && symbolFormat == DebugSymbolFormat.Pdb)
+				targetParameters.SymbolReaderProvider = new PdbReaderProvider();
+
+			if (File.Exists(targetModule + ".mdb") && symbolFormat == DebugSymbolFormat.Mdb)
+				targetParameters.SymbolReaderProvider = new MdbReaderProvider();
+
+			return targetParameters;
+		}
+
+		public void Save(string targetModule)
+		{
+			var parameters = new WriterParameters();
+			if (TargetModule.HasSymbols && DebugSymbolFormat != DebugSymbolFormat.None)
+				parameters.SymbolWriterProvider = DebugSymbolFormat == DebugSymbolFormat.Mdb
+					? (ISymbolWriterProvider) new MdbWriterProvider()
+					: new PdbWriterProvider();
+
+			TargetModule.Write(targetModule, parameters);
+		}
+	}
+}
