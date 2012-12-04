@@ -18,7 +18,7 @@ namespace Unity.ReferenceRewriter
 
 		private void RemoveStrongName()
 		{
-			if (ShouldRemoveStrongName(Context.TargetModule.Assembly.Name))
+			if (!ShouldRemoveStrongName(Context.TargetModule.Assembly.Name))
 				return;
 
 			Context.RewriteTarget = true;
