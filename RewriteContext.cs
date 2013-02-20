@@ -14,6 +14,7 @@ namespace Unity.ReferenceRewriter
 		public bool RewriteTarget { get; set; }
 		public ModuleDefinition TargetModule { get; private set; }
 		public ModuleDefinition SupportModule { get; private set; }
+		public IDictionary<string, ModuleDefinition[]> AltModules { get; private set; }
 		public string FrameworkPath { get; private set; }
 		public IAssemblyResolver AssemblyResolver { get; private set; }
 		public Collection<string> StrongNameReferences { get; private set; }
@@ -33,7 +34,7 @@ namespace Unity.ReferenceRewriter
 			}
 		}
 
-		public static RewriteContext For(string targetModule, DebugSymbolFormat symbolFormat, string supportModule, string frameworkPath, ICollection<string> strongNamedReferences)
+		public static RewriteContext For(string targetModule, DebugSymbolFormat symbolFormat, string supportModule, string frameworkPath, ICollection<string> strongNamedReferences, IDictionary<string, IList<string>> alt)
 		{
 			if (targetModule == null)
 				throw new ArgumentNullException("targetModule");
@@ -45,10 +46,26 @@ namespace Unity.ReferenceRewriter
 			var support = ModuleDefinition.ReadModule(supportModule, new ReaderParameters {AssemblyResolver = resolver});
 			resolver.RegisterSupportAssembly(support.Assembly);
 
+			var altModules = new Dictionary<string, ModuleDefinition[]>();
+
+			foreach (var pair in alt)
+			{
+				var modules = new ModuleDefinition[pair.Value.Count];
+
+				for (var i = 0; i < modules.Length; ++i)
+				{
+					var path = Path.Combine(frameworkPath, (pair.Value[i] + ".dll"));
+					modules[i] = ModuleDefinition.ReadModule(path, new ReaderParameters { AssemblyResolver = resolver });
+				}
+
+				altModules.Add(pair.Key, modules);
+			}
+
 			return new RewriteContext
 			{
 				TargetModule = ModuleDefinition.ReadModule(targetModule, TargetModuleParameters(targetModule, symbolFormat, resolver)),
 				SupportModule = support,
+				AltModules = altModules,
 				FrameworkPath = frameworkPath,
 				AssemblyResolver = resolver,
 				StrongNameReferences = new Collection<string>(strongNamedReferences),

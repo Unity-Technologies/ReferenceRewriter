@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Mono.Options;
 
@@ -16,6 +17,7 @@ namespace Unity.ReferenceRewriter
 			var systemNamespace = "";
 			var strongNamedReferences = "";
 			var symbolFormat = DebugSymbolFormat.None;
+			var alt = new Dictionary<string, IList<string>>();
 
 			var set = new OptionSet
 			{
@@ -26,6 +28,7 @@ namespace Unity.ReferenceRewriter
 				{ "system=", "The support namespace for System.", s => systemNamespace = s },
 				{ "snrefs=", "A comma separated list of assembly names that retain their strong names.", s => strongNamedReferences = s },
 				{ "dbg=", "File format of the debug symbols. Either none, mdb or pdb.", d => symbolFormat = SymbolFormat(d) },
+				{ "alt=", "A semicolon separated list of alternative namespace and assembly mappings.", a => AltFormat(alt, a) },
 
 				{ "?|h|help", h => help = true },
 			};
@@ -53,7 +56,7 @@ namespace Unity.ReferenceRewriter
 						? systemNamespace + ns.Substring("System".Length)
 						: ns);
 
-				var context = RewriteContext.For(targetModule, symbolFormat, supportModule, frameworkPath, strongNamedReferences.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
+				var context = RewriteContext.For(targetModule, symbolFormat, supportModule, frameworkPath, strongNamedReferences.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries), alt);
 
 				operation.Execute(context);
 
@@ -76,6 +79,30 @@ namespace Unity.ReferenceRewriter
 				: string.Equals(d, "pdb", StringComparison.OrdinalIgnoreCase)
 					? DebugSymbolFormat.Pdb
 					: DebugSymbolFormat.None;
+		}
+
+		private static void AltFormat(IDictionary<string, IList<string>> alt, string a)
+		{
+			foreach (var pair in a.Split(';'))
+			{
+				var parts = pair.Split(new char[] { ',' }, 2);
+
+				var @namespace = parts[0];
+				var assemblyName = @namespace;
+
+				if (parts.Length > 1)
+					assemblyName = parts[1];
+
+				IList<string> assemblyNames;
+
+				if (!alt.TryGetValue(@namespace, out assemblyNames))
+				{
+					assemblyNames = new List<string>();
+					alt.Add(@namespace, assemblyNames);
+				}
+
+				assemblyNames.Add(assemblyName);
+			}
 		}
 
 		private static void Usage(OptionSet set)

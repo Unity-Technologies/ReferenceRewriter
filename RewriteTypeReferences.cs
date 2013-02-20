@@ -29,6 +29,30 @@ namespace Unity.ReferenceRewriter
 			return reference;
 		}
 
+		private bool AltAssemblyReference(string @namespace, out AssemblyNameReference[] names)
+		{
+			ModuleDefinition[] modules;
+
+			if (!Context.AltModules.TryGetValue(@namespace, out modules))
+			{
+				names = null;
+				return false;
+			}
+
+			names = new AssemblyNameReference[modules.Length];
+
+			for (var i = 0; i < modules.Length; ++i)
+			{
+				var name = modules[i].Assembly.Name;
+				var reference = Context.TargetModule.AssemblyReferences.SingleOrDefault(r => r.FullName == name.FullName);
+				if (reference == null)
+					reference = new AssemblyNameReference(name.Name, name.Version) { PublicKeyToken = name.PublicKeyToken };
+				names[i] = reference;
+			}
+
+			return true;
+		}
+
 		public void Visit(TypeReference type)
 		{
 			if (type.IsNested)
@@ -41,6 +65,9 @@ namespace Unity.ReferenceRewriter
 				return;
 
 			if (type.Resolve() != null)
+				return;
+
+			if (TryToResolveInAlt(type))
 				return;
 
 			Console.WriteLine("Error: type `{0}` doesn't exist in target framework.", type.FullName);
@@ -66,6 +93,32 @@ namespace Unity.ReferenceRewriter
 
 			type.Scope = originalScope;
 			type.Namespace = originalNamespace;
+			return false;
+		}
+
+		private bool TryToResolveInAlt(TypeReference type)
+		{
+			AssemblyNameReference[] names;
+
+			if (!AltAssemblyReference(type.Namespace, out names))
+				return false;
+
+			var originalScope = type.Scope;
+
+			foreach (var name in names)
+			{
+				type.Scope = name;
+
+				var resolved = type.Resolve();
+				if (resolved != null)
+				{
+					Context.RewriteTarget = true;
+					AddSupportReferenceIfNeeded(name);
+					return true;
+				}
+			}
+
+			type.Scope = originalScope;
 			return false;
 		}
 
