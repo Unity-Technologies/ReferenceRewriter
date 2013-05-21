@@ -44,6 +44,7 @@ namespace Test.Driver
 				DebugSymbolFormat.None,
 				"Test.Support.dll",
 				Path.GetDirectoryName(typeof(object).Assembly.Location),
+				string.Empty,
 				new string[0],
 				new Dictionary<string, IList<string>>());
 

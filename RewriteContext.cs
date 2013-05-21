@@ -34,7 +34,7 @@ namespace Unity.ReferenceRewriter
 			}
 		}
 
-		public static RewriteContext For(string targetModule, DebugSymbolFormat symbolFormat, string supportModule, string frameworkPath, ICollection<string> strongNamedReferences, IDictionary<string, IList<string>> alt)
+		public static RewriteContext For(string targetModule, DebugSymbolFormat symbolFormat, string supportModule, string frameworkPath, string platformPath, ICollection<string> strongNamedReferences, IDictionary<string, IList<string>> alt)
 		{
 			if (targetModule == null)
 				throw new ArgumentNullException("targetModule");
@@ -45,6 +45,8 @@ namespace Unity.ReferenceRewriter
 			var resolver = new RewriteResolver(targetModule, Path.GetFullPath(frameworkPath));
 			var support = ModuleDefinition.ReadModule(supportModule, new ReaderParameters {AssemblyResolver = resolver});
 			resolver.RegisterSupportAssembly(support.Assembly);
+			var platform = ModuleDefinition.ReadModule(platformPath, new ReaderParameters {AssemblyResolver = resolver});
+			resolver.RegisterSupportAssembly(platform.Assembly);
 
 			var altModules = new Dictionary<string, ModuleDefinition[]>();
 

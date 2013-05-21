@@ -14,6 +14,7 @@ namespace Unity.ReferenceRewriter
 			var targetModuleOutput = "";
 			var supportModule = "";
 			var frameworkPath = "";
+			var platformPath = "";
 			var systemNamespace = "";
 			var strongNamedReferences = "";
 			var symbolFormat = DebugSymbolFormat.None;
@@ -25,6 +26,7 @@ namespace Unity.ReferenceRewriter
 				{ "output=", "Where to write the rewritten target module. Default is write over.", o => targetModuleOutput = o },
 				{ "support=", "The support module containing the replacement API.", s => supportModule = s },
 				{ "framework=", "The directory of the target framework.", f => frameworkPath = f },
+				{ "platform=", "Path to platform assembly.", p => platformPath = p },
 				{ "system=", "The support namespace for System.", s => systemNamespace = s },
 				{ "snrefs=", "A comma separated list of assembly names that retain their strong names.", s => strongNamedReferences = s },
 				{ "dbg=", "File format of the debug symbols. Either none, mdb or pdb.", d => symbolFormat = SymbolFormat(d) },
@@ -56,7 +58,7 @@ namespace Unity.ReferenceRewriter
 						? systemNamespace + ns.Substring("System".Length)
 						: ns);
 
-				var context = RewriteContext.For(targetModule, symbolFormat, supportModule, frameworkPath, strongNamedReferences.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries), alt);
+				var context = RewriteContext.For(targetModule, symbolFormat, supportModule, frameworkPath, platformPath, strongNamedReferences.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries), alt);
 
 				operation.Execute(context);
 
