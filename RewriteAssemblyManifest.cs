@@ -71,7 +71,8 @@ namespace Unity.ReferenceRewriter
 			return Context.StrongNameReferences.All(r => r != reference.Name);
 		}
 
-		private bool ShouldRewriteToWinmdReference(AssemblyNameReference reference) {
+		private bool ShouldRewriteToWinmdReference(AssemblyNameReference reference)
+		{
 			return Context.WinmdReferences.Contains(reference.Name);
 		}
 

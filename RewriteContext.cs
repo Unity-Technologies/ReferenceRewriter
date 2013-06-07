@@ -43,21 +43,26 @@ namespace Unity.ReferenceRewriter
 				catch
 				{
 					if (name.IsWindowsRuntime)
-					{
-						foreach (var dir in this.GetSearchDirectories())
-						{
-							string file = Path.Combine(dir, name.Name + ".winmd");
-							if (!File.Exists(file))
-								continue;
-
-							AssemblyDefinition def = AssemblyDefinition.ReadAssembly(file);
-							this.RegisterAssembly(def);
-							break;
-						}
-					}
+						return ResolveAndRegisterWinmd(name);
 				}
 
-				return base.Resolve(name);
+				throw new AssemblyResolutionException(name);
+			}
+
+			private AssemblyDefinition ResolveAndRegisterWinmd(AssemblyNameReference name)
+			{
+				foreach (var dir in this.GetSearchDirectories())
+				{
+					string file = Path.Combine(dir, name.Name + ".winmd");
+					if (!File.Exists(file))
+						continue;
+
+					AssemblyDefinition def = AssemblyDefinition.ReadAssembly(file);
+					RegisterAssembly(def);
+					return def;
+				}
+
+				throw new AssemblyResolutionException(name);
 			}
 		}
 
