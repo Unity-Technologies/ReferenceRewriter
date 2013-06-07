@@ -30,6 +30,13 @@ namespace Unity.ReferenceRewriter
 		{
 			try
 			{
+				if (ShouldRewriteToWinmdReference(reference))
+				{
+					Context.RewriteTarget = true;
+					reference.Version = new Version(255, 255, 255, 255);
+					reference.IsWindowsRuntime = true;
+				}
+
 				var assembly = Context.AssemblyResolver.Resolve(reference);
 
 				if (IsFrameworkAssembly(assembly) && ShouldRewriteFrameworkReference(reference, assembly))
@@ -62,6 +69,10 @@ namespace Unity.ReferenceRewriter
 				return false;
 
 			return Context.StrongNameReferences.All(r => r != reference.Name);
+		}
+
+		private bool ShouldRewriteToWinmdReference(AssemblyNameReference reference) {
+			return Context.WinmdReferences.Contains(reference.Name);
 		}
 
 		private static byte[] Copy(byte[] bytes)

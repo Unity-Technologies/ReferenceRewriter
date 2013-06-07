@@ -17,6 +17,7 @@ namespace Unity.ReferenceRewriter
 			var platformPath = "";
 			var systemNamespace = "";
 			var strongNamedReferences = "";
+			var winmdReferences = "";
 			var symbolFormat = DebugSymbolFormat.None;
 			var alt = new Dictionary<string, IList<string>>();
 
@@ -29,6 +30,7 @@ namespace Unity.ReferenceRewriter
 				{ "platform=", "Path to platform assembly.", p => platformPath = p },
 				{ "system=", "The support namespace for System.", s => systemNamespace = s },
 				{ "snrefs=", "A comma separated list of assembly names that retain their strong names.", s => strongNamedReferences = s },
+				{ "winmdrefs=", "A comma separated list of assembly names that should be redirected to winmd references.", s => winmdReferences = s },
 				{ "dbg=", "File format of the debug symbols. Either none, mdb or pdb.", d => symbolFormat = SymbolFormat(d) },
 				{ "alt=", "A semicolon separated list of alternative namespace and assembly mappings.", a => AltFormat(alt, a) },
 
@@ -58,7 +60,9 @@ namespace Unity.ReferenceRewriter
 						? systemNamespace + ns.Substring("System".Length)
 						: ns);
 
-				var context = RewriteContext.For(targetModule, symbolFormat, supportModule, frameworkPath, platformPath, strongNamedReferences.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries), alt);
+				var strongNamedReferencesArray = strongNamedReferences.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+				var winmdReferencesArray = winmdReferences.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+				var context = RewriteContext.For(targetModule, symbolFormat, supportModule, frameworkPath, platformPath, strongNamedReferencesArray, winmdReferencesArray, alt);
 
 				operation.Execute(context);
 

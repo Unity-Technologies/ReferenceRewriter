@@ -18,6 +18,7 @@ namespace Unity.ReferenceRewriter
 		public string FrameworkPath { get; private set; }
 		public IAssemblyResolver AssemblyResolver { get; private set; }
 		public Collection<string> StrongNameReferences { get; private set; }
+		public Collection<string> WinmdReferences { get; private set; }
 		public DebugSymbolFormat DebugSymbolFormat { get; private set; }
 
 		class RewriteResolver : DefaultAssemblyResolver
@@ -32,9 +33,35 @@ namespace Unity.ReferenceRewriter
 			{
 				RegisterAssembly(assembly);
 			}
+
+			public override AssemblyDefinition Resolve(AssemblyNameReference name)
+			{
+				try
+				{
+					return base.Resolve(name);
+				}
+				catch
+				{
+					if (name.IsWindowsRuntime)
+					{
+						foreach (var dir in this.GetSearchDirectories())
+						{
+							string file = Path.Combine(dir, name.Name + ".winmd");
+							if (!File.Exists(file))
+								continue;
+
+							AssemblyDefinition def = AssemblyDefinition.ReadAssembly(file);
+							this.RegisterAssembly(def);
+							break;
+						}
+					}
+				}
+
+				return base.Resolve(name);
+			}
 		}
 
-		public static RewriteContext For(string targetModule, DebugSymbolFormat symbolFormat, string supportModule, string frameworkPath, string platformPath, ICollection<string> strongNamedReferences, IDictionary<string, IList<string>> alt)
+		public static RewriteContext For(string targetModule, DebugSymbolFormat symbolFormat, string supportModule, string frameworkPath, string platformPath, ICollection<string> strongNamedReferences, ICollection<string> winmdReferences, IDictionary<string, IList<string>> alt)
 		{
 			if (targetModule == null)
 				throw new ArgumentNullException("targetModule");
@@ -71,6 +98,7 @@ namespace Unity.ReferenceRewriter
 				FrameworkPath = frameworkPath,
 				AssemblyResolver = resolver,
 				StrongNameReferences = new Collection<string>(strongNamedReferences),
+				WinmdReferences = new Collection<string>(winmdReferences),
 				DebugSymbolFormat = symbolFormat,
 			};
 		}
