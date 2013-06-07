@@ -72,8 +72,12 @@ namespace Unity.ReferenceRewriter
 			var resolver = new RewriteResolver(targetModule, Path.GetFullPath(frameworkPath));
 			var support = ModuleDefinition.ReadModule(supportModule, new ReaderParameters {AssemblyResolver = resolver});
 			resolver.RegisterSupportAssembly(support.Assembly);
-			var platform = ModuleDefinition.ReadModule(platformPath, new ReaderParameters {AssemblyResolver = resolver});
-			resolver.RegisterSupportAssembly(platform.Assembly);
+
+			if (!string.IsNullOrEmpty(platformPath))
+			{
+				var platform = ModuleDefinition.ReadModule(platformPath, new ReaderParameters {AssemblyResolver = resolver});
+				resolver.RegisterSupportAssembly(platform.Assembly);
+			}
 
 			var altModules = new Dictionary<string, ModuleDefinition[]>();
 
