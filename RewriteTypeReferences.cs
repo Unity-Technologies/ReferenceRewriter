@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reflection;
 using Mono.Cecil;
 
 namespace Unity.ReferenceRewriter
@@ -44,7 +47,7 @@ namespace Unity.ReferenceRewriter
 			for (var i = 0; i < modules.Length; ++i)
 			{
 				var name = modules[i].Assembly.Name;
-				var reference = Context.TargetModule.AssemblyReferences.SingleOrDefault(r => r.FullName == name.FullName);
+				var reference = Context.TargetModule.AssemblyReferences.FirstOrDefault(r => r.FullName == name.FullName);
 				if (reference == null)
 					reference = new AssemblyNameReference(name.Name, name.Version) { PublicKeyToken = name.PublicKeyToken };
 				names[i] = reference;
@@ -140,10 +143,97 @@ namespace Unity.ReferenceRewriter
 
 		public void Visit(MethodReference method)
 		{
-			if (method.Resolve() != null)
+			if (method.Resolve() != null || method.DeclaringType.IsArray || ResolveManually(method) != null)
 				return;
 
 			Console.WriteLine("Error: method `{0}` doesn't exist in target framework.", method);
+		}
+
+		private MethodDefinition ResolveManually(MethodReference method)
+		{
+			var metadataResolver = method.Module.MetadataResolver;
+			var type = metadataResolver.Resolve(method.DeclaringType);
+
+			if (type == null || !type.HasMethods)
+			{
+				return null;
+			}
+
+			method = method.GetElementMethod();
+
+			while (type != null)
+			{
+				var methodDefinition = GetMethodDefinition(type.Methods, method);
+
+				if (methodDefinition != null)
+				{
+					return methodDefinition;
+				}
+
+				if (type.BaseType == null)
+				{
+					return null;
+				}
+				type = metadataResolver.Resolve(type.BaseType);
+			}
+
+			return null;
+		}
+
+		private MethodDefinition GetMethodDefinition(IEnumerable<MethodDefinition> methods, MethodReference reference)
+		{
+			foreach (var methodDefinition in methods)
+			{
+				bool isSameName = methodDefinition.Name == reference.Name;
+				bool isSameGenericParameters = methodDefinition.HasGenericParameters == reference.HasGenericParameters &&
+												(!methodDefinition.HasGenericParameters || methodDefinition.GenericParameters.Count == reference.GenericParameters.Count);
+
+				bool isSameReturnType = AreSame(methodDefinition.ReturnType, reference.ReturnType);
+
+				if (isSameName && isSameGenericParameters && isSameReturnType && methodDefinition.HasParameters == reference.HasParameters)
+				{
+					if (!methodDefinition.HasParameters && !reference.HasParameters)
+					{
+						return methodDefinition;
+					}
+
+					if (AreSame(methodDefinition.Parameters, reference.Parameters))
+					{
+						return methodDefinition;
+					}
+				}
+			}
+
+			return null;
+		}
+
+		private bool AreSame(TypeReference a, TypeReference b)
+		{
+			var assembly = System.Reflection.Assembly.GetAssembly(typeof (MetadataResolver));
+			var type = assembly.GetType("Mono.Cecil.MetadataResolver");
+			var compareMethod = type.GetMethod("AreSame", BindingFlags.Static | BindingFlags.NonPublic, null, new Type[] {typeof (TypeReference), typeof (TypeReference)}, null);
+
+			var areSameAccordingToCecil = (bool)compareMethod.Invoke(null, new object[] {a, b});
+			bool areSameAccordingToTypeAliases = TypeAliases.AreAliases(a.FullName, b.FullName);
+			
+			return areSameAccordingToCecil || areSameAccordingToTypeAliases;
+		}
+
+		private bool AreSame(Mono.Collections.Generic.Collection<ParameterDefinition> a, Mono.Collections.Generic.Collection<ParameterDefinition> b)
+		{
+			if (a.Count != b.Count)
+			{
+				return false;
+			}
+
+			for (int i = 0; i < a.Count; i++)
+			{
+				if (!AreSame(a[i].ParameterType, b[i].ParameterType))
+				{
+					return false;
+				}
+			}
+			return true;
 		}
 	}
 }

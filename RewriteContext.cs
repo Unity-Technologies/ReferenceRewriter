@@ -15,7 +15,7 @@ namespace Unity.ReferenceRewriter
 		public ModuleDefinition TargetModule { get; private set; }
 		public ModuleDefinition SupportModule { get; private set; }
 		public IDictionary<string, ModuleDefinition[]> AltModules { get; private set; }
-		public string FrameworkPath { get; private set; }
+		public string[] FrameworkPaths { get; private set; }
 		public IAssemblyResolver AssemblyResolver { get; private set; }
 		public Collection<string> StrongNameReferences { get; private set; }
 		public Collection<string> WinmdReferences { get; private set; }
@@ -29,7 +29,17 @@ namespace Unity.ReferenceRewriter
 				AddSearchDirectory(frameworkPath);
 			}
 
-			public void RegisterSupportAssembly(AssemblyDefinition assembly)
+		    public RewriteResolver(string targetModule, string[] frameworkPaths)
+		    {
+				AddSearchDirectory(Path.GetDirectoryName(targetModule));
+
+		        foreach (var path in frameworkPaths)
+		        {
+		            AddSearchDirectory(path);
+		        }
+		    }
+
+		    public void RegisterSupportAssembly(AssemblyDefinition assembly)
 			{
 				RegisterAssembly(assembly);
 			}
@@ -66,15 +76,22 @@ namespace Unity.ReferenceRewriter
 			}
 		}
 
-		public static RewriteContext For(string targetModule, DebugSymbolFormat symbolFormat, string supportModule, string frameworkPath, string platformPath, ICollection<string> strongNamedReferences, ICollection<string> winmdReferences, IDictionary<string, IList<string>> alt)
+		public static RewriteContext For(string targetModule, DebugSymbolFormat symbolFormat, string supportModule, string[] frameworkPaths, string platformPath, ICollection<string> strongNamedReferences, ICollection<string> winmdReferences, IDictionary<string, IList<string>> alt)
 		{
 			if (targetModule == null)
 				throw new ArgumentNullException("targetModule");
 			if (supportModule == null)
 				throw new ArgumentNullException("supportModule");
-			CheckFrameworkPath(frameworkPath);
 
-			var resolver = new RewriteResolver(targetModule, Path.GetFullPath(frameworkPath));
+            CheckFrameworkPaths(frameworkPaths);
+
+		    var fullFrameworkPaths = new string[frameworkPaths.Length];
+		    for (int i = 0; i < frameworkPaths.Length; i++)
+		    {
+		        fullFrameworkPaths[i] = Path.GetFullPath(frameworkPaths[i]);
+		    }
+
+            var resolver = new RewriteResolver(targetModule, fullFrameworkPaths);
 			var support = ModuleDefinition.ReadModule(supportModule, new ReaderParameters {AssemblyResolver = resolver});
 			resolver.RegisterSupportAssembly(support.Assembly);
 
@@ -92,8 +109,17 @@ namespace Unity.ReferenceRewriter
 
 				for (var i = 0; i < modules.Length; ++i)
 				{
-					var path = Path.Combine(frameworkPath, (pair.Value[i] + ".dll"));
-					modules[i] = ModuleDefinition.ReadModule(path, new ReaderParameters { AssemblyResolver = resolver });
+				    string path = null;
+				    foreach (var frameworkPath in frameworkPaths)
+				    {
+				        path = Path.Combine(frameworkPath, (pair.Value[i] + ".dll"));
+
+				        if (File.Exists(path))
+				        {
+				            break;
+				        }
+				    }
+				    modules[i] = ModuleDefinition.ReadModule(path, new ReaderParameters { AssemblyResolver = resolver });
 				}
 
 				altModules.Add(pair.Key, modules);
@@ -104,7 +130,7 @@ namespace Unity.ReferenceRewriter
 				TargetModule = ModuleDefinition.ReadModule(targetModule, TargetModuleParameters(targetModule, symbolFormat, resolver)),
 				SupportModule = support,
 				AltModules = altModules,
-				FrameworkPath = frameworkPath,
+				FrameworkPaths = frameworkPaths,
 				AssemblyResolver = resolver,
 				StrongNameReferences = new Collection<string>(strongNamedReferences),
 				WinmdReferences = new Collection<string>(winmdReferences),
@@ -123,6 +149,31 @@ namespace Unity.ReferenceRewriter
 			if (!File.Exists(Path.Combine(frameworkPath, "mscorlib.dll")))
 				throw new ArgumentException("No mscorlib.dll in the framework path.", "frameworkPath");
 		}
+
+	    private static void CheckFrameworkPaths(string[] frameworkPaths)
+        {
+            int timesFoundMscorlib = 0;
+            foreach (var path in frameworkPaths)
+            {
+                try
+                {
+                    CheckFrameworkPath(path);
+                    timesFoundMscorlib++;
+                }
+                catch (ArgumentException e)
+                {
+					if (!e.Message.Contains(@"No mscorlib.dll in the framework path."))
+                    {
+                        throw;
+                    }
+                }
+            }
+
+            if (timesFoundMscorlib == 0)
+            {
+                throw new ArgumentException("No mscorlib.dll in the framework path.", "frameworkPaths");
+            }
+	    }
 
 		private static ReaderParameters TargetModuleParameters(string targetModule, DebugSymbolFormat symbolFormat, RewriteResolver resolver)
 		{

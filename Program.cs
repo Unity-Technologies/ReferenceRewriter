@@ -26,7 +26,7 @@ namespace Unity.ReferenceRewriter
 				{ "target=", "The target module to rewrite.", t => targetModule = t },
 				{ "output=", "Where to write the rewritten target module. Default is write over.", o => targetModuleOutput = o },
 				{ "support=", "The support module containing the replacement API.", s => supportModule = s },
-				{ "framework=", "The directory of the target framework.", f => frameworkPath = f },
+				{ "framework=", "A comma separated list of the directories of the target framework.", f => frameworkPath = f },
 				{ "platform=", "Path to platform assembly.", p => platformPath = p },
 				{ "system=", "The support namespace for System.", s => systemNamespace = s },
 				{ "snrefs=", "A comma separated list of assembly names that retain their strong names.", s => strongNamedReferences = s },
@@ -60,9 +60,10 @@ namespace Unity.ReferenceRewriter
 						? systemNamespace + ns.Substring("System".Length)
 						: ns);
 
+                var frameworkPaths = frameworkPath.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 				var strongNamedReferencesArray = strongNamedReferences.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 				var winmdReferencesArray = winmdReferences.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-				var context = RewriteContext.For(targetModule, symbolFormat, supportModule, frameworkPath, platformPath, strongNamedReferencesArray, winmdReferencesArray, alt);
+				var context = RewriteContext.For(targetModule, symbolFormat, supportModule, frameworkPaths, platformPath, strongNamedReferencesArray, winmdReferencesArray, alt);
 
 				operation.Execute(context);
 

@@ -85,7 +85,17 @@ namespace Unity.ReferenceRewriter
 
 		private bool IsFrameworkAssembly(AssemblyDefinition assembly)
 		{
-			return FullPath(Path.GetDirectoryName(assembly.MainModule.FullyQualifiedName)) == FullPath(Context.FrameworkPath);
+		    bool isFrameworkAssembly = false;
+
+		    foreach (var path in Context.FrameworkPaths)
+		    {
+		        if (FullPath(Path.GetDirectoryName(assembly.MainModule.FullyQualifiedName)) == FullPath(path))
+		        {
+		            isFrameworkAssembly = true;
+		        }
+		    }
+
+		    return isFrameworkAssembly;
 		}
 
 		private static string FullPath(string path)

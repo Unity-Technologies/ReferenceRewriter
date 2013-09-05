@@ -1,5 +1,6 @@
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using System;
 
 namespace Unity.ReferenceRewriter
 {
@@ -84,7 +85,7 @@ namespace Unity.ReferenceRewriter
 				}
 
 				var method = instruction.Operand as MethodReference;
-				if (method != null)
+				if (method != null && !IsUnityScriptMethod(method))
 				{
 					Visit(method);
 					continue;
@@ -182,9 +183,6 @@ namespace Unity.ReferenceRewriter
 			foreach (var parameter in method.Parameters)
 				Visit(parameter.ParameterType);
 
-			if (method.DeclaringType.Module == _module)
-				return;
-
 			_visitor.Visit(method);
 		}
 
@@ -224,5 +222,18 @@ namespace Unity.ReferenceRewriter
 		{
 			new ReferenceDispatcher(module, visitor).Dispatch();
 		}
+
+        public static bool IsUnityScriptMethod(MethodReference method)
+        {
+            var ret = false;
+            var type = method.DeclaringType.FullName;
+
+            if (type.StartsWith("UnityScript.Lang"))
+            {
+                ret = true;
+            }
+
+            return ret;
+        }
 	}
 }
