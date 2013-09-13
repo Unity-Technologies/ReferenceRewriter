@@ -54,6 +54,7 @@
     <Compile Include="DebugSymbolFormat.cs" />
     <Compile Include="IReferenceVisitor.cs" />
     <Compile Include="IRewriteStep.cs" />
+    <Compile Include="MethodAliases.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -184,7 +184,7 @@ namespace Unity.ReferenceRewriter
 		{
 			foreach (var methodDefinition in methods)
 			{
-				bool isSameName = methodDefinition.Name == reference.Name;
+				bool isSameName = methodDefinition.Name == reference.Name || MethodAliases.AreAliases(methodDefinition.Name, reference.Name);
 				bool isSameGenericParameters = methodDefinition.HasGenericParameters == reference.HasGenericParameters &&
 												(!methodDefinition.HasGenericParameters || methodDefinition.GenericParameters.Count == reference.GenericParameters.Count);
 

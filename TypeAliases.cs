@@ -7,7 +7,7 @@ namespace Unity.ReferenceRewriter
 {
 	static class TypeAliases
 	{
-		private static SortedSet<Tuple<string, string>> _aliases;
+		private static readonly SortedSet<Tuple<string, string>> _aliases;
 
 		static TypeAliases()
 		{
@@ -28,7 +28,11 @@ namespace Unity.ReferenceRewriter
 				new Tuple<string, string>(
 					"System.Runtime.InteropServices.WindowsRuntime.EventRegistrationToken",		"Windows.Foundation.EventRegistrationToken"),
 				new Tuple<string, string>(
-					"System.DateTimeOffset",													"Windows.Foundation.DateTime")
+					"System.DateTimeOffset",													"Windows.Foundation.DateTime"),
+				new Tuple<string, string>(
+					"System.TimeSpan",															"Windows.Foundation.TimeSpan"),
+				new Tuple<string, string>(
+					"System.Exception",															"Windows.Foundation.HResult")
 			};
 		}
 
