@@ -75,8 +75,9 @@ namespace Unity.ReferenceRewriter
 			foreach (var variable in body.Variables)
 				Visit(variable.VariableType);
 
-			foreach (var instruction in body.Instructions)
+			for (int i = 0; i < body.Instructions.Count; i++)
 			{
+				var instruction = body.Instructions[i];
 				var field = instruction.Operand as FieldReference;
 				if (field != null)
 				{
@@ -88,6 +89,11 @@ namespace Unity.ReferenceRewriter
 				if (method != null && !IsUnityScriptMethod(method))
 				{
 					Visit(method);
+					if (_visitor.MethodChanged)
+					{
+						_visitor.RewriteObjectListToParamsCall(body, i);
+					}
+
 					continue;
 				}
 
