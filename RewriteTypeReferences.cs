@@ -169,20 +169,27 @@ namespace Unity.ReferenceRewriter
 
 			method = method.GetElementMethod();
 
-			while (type != null)
+			Func<IEnumerable<MethodDefinition>, MethodReference, MethodDefinition>[] finderMethods = 
+				{GetMethodDefinition, GetCompatibleMethodDefinition};
+
+			for (int i = 0; i < finderMethods.Length; i++)
 			{
-				var methodDefinition = GetMethodDefinition(type.Methods, method);
-
-				if (methodDefinition != null)
+				while (type != null)
 				{
-					return methodDefinition;
-				}
+					var methodDefinition = finderMethods[i](type.Methods, method);
 
-				if (type.BaseType == null)
-				{
-					return null;
+					if (methodDefinition != null)
+					{
+						return methodDefinition;
+					}
+
+					if (type.BaseType == null)
+					{
+						break;
+					}
+					type = metadataResolver.Resolve(type.BaseType);
 				}
-				type = metadataResolver.Resolve(type.BaseType);
+				type = metadataResolver.Resolve(method.DeclaringType);
 			}
 
 			return null;
@@ -209,7 +216,24 @@ namespace Unity.ReferenceRewriter
 					{
 						return methodDefinition;
 					}
+				}
+			}
 
+			return null;
+		}
+
+		private MethodDefinition GetCompatibleMethodDefinition(IEnumerable<MethodDefinition> methods, MethodReference reference)
+		{
+			foreach (var methodDefinition in methods)
+			{
+				bool isSameName = methodDefinition.Name == reference.Name || MethodAliases.AreAliases(methodDefinition.Name, reference.Name);
+				bool isSameGenericParameters = methodDefinition.HasGenericParameters == reference.HasGenericParameters &&
+												(!methodDefinition.HasGenericParameters || methodDefinition.GenericParameters.Count == reference.GenericParameters.Count);
+
+				bool isSameReturnType = AreSame(methodDefinition.ReturnType, reference.ReturnType);
+
+				if (isSameName && isSameGenericParameters && isSameReturnType)
+				{
 					if (ArgsMatchParamsList(methodDefinition.Parameters, reference.Parameters))
 					{
 						ParamsMethod = Context.TargetModule.Import(methodDefinition);
@@ -222,7 +246,7 @@ namespace Unity.ReferenceRewriter
 
 			return null;
 		}
-
+		
 		// The idea behind this method is to change method call from Method(obj1, obj2, obj3) to Method(param Object[] objs)
 		// To do that, we need to first pack all the objects to an array, then push the array onto the stack before calling the method.
 		// Creating an array is achieved by pushing number of elements on the stack, and using newarr instruction.
@@ -249,31 +273,40 @@ namespace Unity.ReferenceRewriter
 		// IL_0000: newobj instance void [mscorlib]System.Text.StringBuilder::.ctor()
 		// IL_0005: stloc.0
 		// IL_0006: ldloc.0
-		// IL_0007: ldstr "{0}, {1}"
-		// IL_000c: ldc.i4.2
-		// IL_000d: newarr [mscorlib]System.Object
-		// IL_0012: stloc.1
-		// IL_0013: ldloc.1
-		// IL_0014: ldc.i4.0
-		// IL_0015: ldstr "one"
-		// IL_001a: stelem.ref
-		// IL_001b: ldloc.1
-		// IL_001c: ldc.i4.1
-		// IL_001d: ldstr "two"
-		// IL_0022: stelem.ref
-		// IL_0023: ldloc.1
-		// IL_0024: callvirt instance class [mscorlib]System.Text.StringBuilder [mscorlib]System.Text.StringBuilder::AppendFormat(string, object[])
-		// IL_0029: pop
+		// IL_0007: ldstr "{0}, {1}\r\n"
+		// IL_000c: ldstr "one"
+		// IL_0011: ldstr "two"
+		// IL_0016: ldc.i4 2
+		// IL_001b: newarr [mscorlib]System.Object
+		// IL_0020: stloc 1
+		// IL_0024: stloc 2
+		// IL_0028: stloc 3
+		// IL_002c: ldloc 1
+		// IL_0030: ldc.i4 0
+		// IL_0035: ldloc 2
+		// IL_0039: stelem.ref
+		// IL_003a: ldloc 1
+		// IL_003e: ldc.i4 1
+		// IL_0043: ldloc 3
+		// IL_0047: stelem.ref
+		// IL_0048: ldloc 1
+		// IL_004c: callvirt instance class [mscorlib]System.Text.StringBuilder [mscorlib]System.Text.StringBuilder::AppendFormat(string, object[])
+		// IL_0051: pop
+		//
+		// Basically, just before the invalid function call we pack all the arguments (that are already on the stack, 
+		// ready to be passed to invalid function) to a newly created array and call a valid function instead passing 
+		// the array as argument
 		//
 		public void RewriteObjectListToParamsCall(MethodBody methodBody, int instructionIndex)
 		{
-			var variableInfo = new VariableDefinition(ParamsMethod.Parameters.Last().ParameterType);
-			var arrayIndex = methodBody.Variables.Count;
-			methodBody.Variables.Add(variableInfo);
+			var parameterType = ParamsMethod.Parameters.Last().ParameterType;
+			var arrayInfo = new VariableDefinition(parameterType);
+			methodBody.Variables.Add(arrayInfo);
 
 			var instruction = methodBody.Instructions[instructionIndex];
 			int numberOfObjects = (instruction.Operand as MethodReference).Parameters.Count - ParamsMethod.Parameters.Count + 1;
-			instructionIndex -= numberOfObjects; // We need to insert our code before objects are loaded onto the stack
+			
+			// Firstly, let's create the object array
 
 			// Push number of objects to the stack
 			var instr = Instruction.Create(OpCodes.Ldc_I4, numberOfObjects);
@@ -286,31 +319,48 @@ namespace Unity.ReferenceRewriter
 			instructionIndex++;
 
 			// Store the newly created array to first variable slot
-			instr = Instruction.Create(OpCodes.Stloc, variableInfo);
+			instr = Instruction.Create(OpCodes.Stloc, arrayInfo);
 			methodBody.Instructions.Insert(instructionIndex, instr);
 			instructionIndex++;
-			
-			// Load every object to the array
+
+			// At this point, all the references to objects that need to be packed to the array are on the stack.
+			var objectInfo = new VariableDefinition[numberOfObjects];
+			for (int i = 0; i < numberOfObjects; i++)
+			{
+				objectInfo[i] = new VariableDefinition(parameterType.GetElementType());
+				methodBody.Variables.Add(objectInfo[i]);
+
+				instr = Instruction.Create(OpCodes.Stloc, objectInfo[i]);
+				methodBody.Instructions.Insert(instructionIndex, instr);
+				instructionIndex++;
+			}
+
+			// Now that we got the references to objects in local variables rather than the stack, it's high time we insert them to the array
 			for (int i = 0; i < numberOfObjects; i++)
 			{
 				// Load reference to the array to the stack
-				instr = Instruction.Create(OpCodes.Ldloc, variableInfo);
+				instr = Instruction.Create(OpCodes.Ldloc, arrayInfo);
 				methodBody.Instructions.Insert(instructionIndex, instr);
 				instructionIndex++;
 
 				// Load object index to the stack
 				instr = Instruction.Create(OpCodes.Ldc_I4, i);
 				methodBody.Instructions.Insert(instructionIndex, instr);
-				instructionIndex += 2;		// The next instruction is loading the object to the stack, we skip it because it's already there
+				instructionIndex++;
 
-				// Load reference to object to the stack
+				// Load reference to the object to the stack
+				instr = Instruction.Create(OpCodes.Ldloc, objectInfo[i]);
+				methodBody.Instructions.Insert(instructionIndex, instr);
+				instructionIndex++;
+				
+				// Insert the object to the array
 				instr = Instruction.Create(OpCodes.Stelem_Ref);
 				methodBody.Instructions.Insert(instructionIndex, instr);
 				instructionIndex++;
 			}
 
-			// Load reference to the array to the stack
-			instr = Instruction.Create(OpCodes.Ldloc, variableInfo);
+			// Finally, load reference to the array to the stack so it can be inserted to the array
+			instr = Instruction.Create(OpCodes.Ldloc, arrayInfo);
 			methodBody.Instructions.Insert(instructionIndex, instr);
 
 			instruction.Operand = ParamsMethod;
