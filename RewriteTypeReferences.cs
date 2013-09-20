@@ -336,6 +336,7 @@ namespace Unity.ReferenceRewriter
 			}
 
 			// Now that we got the references to objects in local variables rather than the stack, it's high time we insert them to the array
+			// We need to load them in backwards order, because the last argument was taken off the stack first.
 			for (int i = 0; i < numberOfObjects; i++)
 			{
 				// Load reference to the array to the stack
@@ -344,7 +345,7 @@ namespace Unity.ReferenceRewriter
 				instructionIndex++;
 
 				// Load object index to the stack
-				instr = Instruction.Create(OpCodes.Ldc_I4, i);
+				instr = Instruction.Create(OpCodes.Ldc_I4, numberOfObjects - i - 1);
 				methodBody.Instructions.Insert(instructionIndex, instr);
 				instructionIndex++;
 
@@ -352,7 +353,7 @@ namespace Unity.ReferenceRewriter
 				instr = Instruction.Create(OpCodes.Ldloc, objectInfo[i]);
 				methodBody.Instructions.Insert(instructionIndex, instr);
 				instructionIndex++;
-				
+
 				// Insert the object to the array
 				instr = Instruction.Create(OpCodes.Stelem_Ref);
 				methodBody.Instructions.Insert(instructionIndex, instr);
