@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Mono.Cecil.Rocks;
 using MethodBody = Mono.Cecil.Cil.MethodBody;
 using TypeAttributes = Mono.Cecil.TypeAttributes;
 
@@ -299,8 +300,11 @@ namespace Unity.ReferenceRewriter
 		//
 		public void RewriteObjectListToParamsCall(MethodBody methodBody, int instructionIndex)
 		{
+			methodBody.SimplifyMacros();
+			
 			var parameterType = ParamsMethod.Parameters.Last().ParameterType;
 			var arrayInfo = new VariableDefinition(parameterType);
+			methodBody.InitLocals = true;
 			methodBody.Variables.Add(arrayInfo);
 
 			var instruction = methodBody.Instructions[instructionIndex];
@@ -310,6 +314,7 @@ namespace Unity.ReferenceRewriter
 
 			// Push number of objects to the stack
 			var instr = Instruction.Create(OpCodes.Ldc_I4, numberOfObjects);
+			var firstInstruction = instr;
 			methodBody.Instructions.Insert(instructionIndex, instr);
 			instructionIndex++;
 
@@ -367,6 +372,18 @@ namespace Unity.ReferenceRewriter
 			instruction.Operand = ParamsMethod;
 			ParamsMethod = null;
 			MethodChanged = false;
+			methodBody.OptimizeMacros();		// This, together with SimplifyMacros() before touching IL code, recalculates IL instruction offsets 
+
+			// If any other instruction is referencing the illegal call, we need to rewrite it to reference beginning of object packing instead
+			// For example, there's a branch jump to call the method. We need to pack the objects anyway before calling the method
+			foreach (var changeableInstruction in methodBody.Instructions)
+			{
+				if (changeableInstruction.Operand is Instruction &&
+					(changeableInstruction as Instruction).Operand == instruction)
+				{
+					changeableInstruction.Operand = firstInstruction;
+				}
+			}
 		}
 
 		private bool AreSame(TypeReference a, TypeReference b)
