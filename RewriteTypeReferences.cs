@@ -358,11 +358,20 @@ namespace Unity.ReferenceRewriter
 				instr = Instruction.Create(OpCodes.Ldloc, objectInfo[i]);
 				methodBody.Instructions.Insert(instructionIndex, instr);
 				instructionIndex++;
-
+				
 				// Insert the object to the array
-				instr = Instruction.Create(OpCodes.Stelem_Ref);
-				methodBody.Instructions.Insert(instructionIndex, instr);
-				instructionIndex++;
+				if (parameterType.GetElementType().IsValueType)
+				{
+					instr = Instruction.Create(OpCodes.Stelem_Any, parameterType.GetElementType());
+					methodBody.Instructions.Insert(instructionIndex, instr);
+					instructionIndex++;
+				}
+				else
+				{
+					instr = Instruction.Create(OpCodes.Stelem_Ref);
+					methodBody.Instructions.Insert(instructionIndex, instr);
+					instructionIndex++;
+				}
 			}
 
 			// Finally, load reference to the array to the stack so it can be inserted to the array
