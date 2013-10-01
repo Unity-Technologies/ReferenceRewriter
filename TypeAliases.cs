@@ -64,7 +64,8 @@ namespace Unity.ReferenceRewriter
 				typeB = typeB.Substring(0, typeB.IndexOf('`'));
 			}
 
-			var areAliases = _aliases.Contains(new Tuple<string, string>(typeA, typeB)) ||
+			var areAliases = typeA == typeB || 
+							_aliases.Contains(new Tuple<string, string>(typeA, typeB)) ||
 							_aliases.Contains(new Tuple<string, string>(typeB, typeA));
 
 			return namesMatch || (templatesMatch && areAliases);
