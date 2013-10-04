@@ -32,7 +32,9 @@ namespace Unity.ReferenceRewriter
 				new Tuple<string, string>(
 					"System.TimeSpan",															"Windows.Foundation.TimeSpan"),
 				new Tuple<string, string>(
-					"System.Exception",															"Windows.Foundation.HResult")
+					"System.Exception",															"Windows.Foundation.HResult"),
+				new Tuple<string, string>(
+					"System.Uri",																"Windows.Foundation.Uri")
 			};
 		}
 
