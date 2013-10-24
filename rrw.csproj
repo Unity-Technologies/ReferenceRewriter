@@ -52,15 +52,18 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DebugSymbolFormat.cs" />
+    <Compile Include="IMethodDefinitionVisitor.cs" />
     <Compile Include="IReferenceVisitor.cs" />
     <Compile Include="IRewriteStep.cs" />
     <Compile Include="MethodAliases.cs" />
+    <Compile Include="MethodDefinitionDispatcher.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ReferenceDispatcher.cs" />
     <Compile Include="RewriteAssemblyManifest.cs" />
     <Compile Include="RewriteContext.cs" />
+    <Compile Include="RewriteMethodSpecMemberRefs.cs" />
     <Compile Include="RewriteOperation.cs" />
     <Compile Include="RewriteStep.cs" />
     <Compile Include="RewriteTypeReferences.cs" />
