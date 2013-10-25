@@ -5,9 +5,9 @@ namespace Unity.ReferenceRewriter
 {
 	interface IReferenceVisitor
 	{
-		void Visit(TypeReference type);
-		void Visit(FieldReference field);
-		void Visit(MethodReference method);
+		void Visit(TypeReference type, string referencingEntityName);
+		void Visit(FieldReference field, string referencingEntityName);
+		void Visit(MethodReference method, string referencingEntityName);
 
 		bool MethodChanged { get; }
 		MethodReference ParamsMethod { get; }

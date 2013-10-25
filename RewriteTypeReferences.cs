@@ -62,11 +62,11 @@ namespace Unity.ReferenceRewriter
 			return true;
 		}
 
-		public void Visit(TypeReference type)
+		public void Visit(TypeReference type, string referencingEntityName)
 		{
 			if (type.IsNested)
 			{
-				Visit(type.DeclaringType);
+				Visit(type.DeclaringType, referencingEntityName);
 				return;
 			}
 
@@ -79,7 +79,8 @@ namespace Unity.ReferenceRewriter
 			if (TryToResolveInAlt(type))
 				return;
 
-			Console.WriteLine("Error: type `{0}` doesn't exist in target framework.", type.FullName);
+			Console.WriteLine("Error: type `{0}` doesn't exist in target framework. It is referenced from {1} at {2}.", 
+				type.FullName, type.Module.Name, referencingEntityName);
 		}
 
 		private bool TryToResolveInSupport(TypeReference type)
@@ -139,15 +140,16 @@ namespace Unity.ReferenceRewriter
 			Context.TargetModule.AssemblyReferences.Add(support);
 		}
 
-		public void Visit(FieldReference field)
+		public void Visit(FieldReference field, string referencingEntityName)
 		{
 			if (field.Resolve() != null)
 				return;
 
-			Console.WriteLine("Error: field `{0}` doesn't exist in target framework.", field);
+			Console.WriteLine("Error: field `{0}` doesn't exist in target framework. It is referenced from {1} at {2}.", 
+				field, field.Module.Name, referencingEntityName);
 		}
 
-		public void Visit(MethodReference method)
+		public void Visit(MethodReference method, string referencingEntityName)
 		{
 			MethodChanged = false;
 			ParamsMethod = null;
@@ -155,7 +157,8 @@ namespace Unity.ReferenceRewriter
 			if (method.Resolve() != null || method.DeclaringType.IsArray || ResolveManually(method) != null)
 				return;
 
-			Console.WriteLine("Error: method `{0}` doesn't exist in target framework.", method);
+			Console.WriteLine("Error: method `{0}` doesn't exist in target framework. It is referenced from {1} at {2}.",
+				method, method.Module.Name, referencingEntityName);
 		}
 
 		private MethodDefinition ResolveManually(MethodReference method)
@@ -426,9 +429,9 @@ namespace Unity.ReferenceRewriter
 
 		private bool ArgsMatchParamsList(Mono.Collections.Generic.Collection<ParameterDefinition> a, Mono.Collections.Generic.Collection<ParameterDefinition> b)
 		{
-			if (a.Last().CustomAttributes.Any(x => x.AttributeType.FullName != "System.ParamArrayAttribute"))
+			if (a.Count == 0 || a.Last().CustomAttributes.Any(x => x.AttributeType.FullName != "System.ParamArrayAttribute"))
 			{
-				if (b.Last().CustomAttributes.Any(x => x.AttributeType.FullName != "System.ParamArrayAttribute"))
+				if (b.Count == 0 || b.Last().CustomAttributes.Any(x => x.AttributeType.FullName != "System.ParamArrayAttribute"))
 				{
 					return false;
 				}
