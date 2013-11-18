@@ -429,9 +429,9 @@ namespace Unity.ReferenceRewriter
 
 		private bool ArgsMatchParamsList(Mono.Collections.Generic.Collection<ParameterDefinition> a, Mono.Collections.Generic.Collection<ParameterDefinition> b)
 		{
-			if (a.Count == 0 || a.Last().CustomAttributes.Any(x => x.AttributeType.FullName != "System.ParamArrayAttribute"))
+			if (a.Count == 0 || a.Last().CustomAttributes.All(x => x.AttributeType.FullName != "System.ParamArrayAttribute"))
 			{
-				if (b.Count == 0 || b.Last().CustomAttributes.Any(x => x.AttributeType.FullName != "System.ParamArrayAttribute"))
+				if (b.Count == 0 || b.Last().CustomAttributes.All(x => x.AttributeType.FullName != "System.ParamArrayAttribute"))
 				{
 					return false;
 				}
