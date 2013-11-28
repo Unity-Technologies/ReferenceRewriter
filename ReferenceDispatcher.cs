@@ -200,7 +200,7 @@ namespace Unity.ReferenceRewriter
 			Visit(field.DeclaringType, referencingEntityName);
 			Visit(field.FieldType, referencingEntityName);
 
-			if (field.DeclaringType.Module == _module)
+			if (field.DeclaringType.Scope == _module)
 				return;
 
 			_visitor.Visit(field, referencingEntityName);
