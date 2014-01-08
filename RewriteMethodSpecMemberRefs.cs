@@ -18,7 +18,7 @@ namespace Unity.ReferenceRewriter
 			{
 				var genericInstanceMethod = instruction.Operand as GenericInstanceMethod;
 
-				if (genericInstanceMethod != null)
+				if ((genericInstanceMethod != null) && (genericInstanceMethod.DeclaringType.MetadataType != MetadataType.GenericInstance))
 				{
 					var elementMethod = genericInstanceMethod.ElementMethod;
 
