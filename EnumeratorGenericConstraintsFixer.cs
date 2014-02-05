@@ -5,7 +5,7 @@ namespace Unity.ReferenceRewriter
 	/*
 	 *	There's a bug in Mono compiler that makes this code throw a runtime exception when running under .NET:
 	 * 
-	 *  public class SomeBaseClass {}
+	 *	public class SomeBaseClass {}
 	 *	public class SomeChildClass : SomeBaseClass {}
 	 *	public delegate void ResourceReady<TType>(int id, TType resource) where TType : SomeBaseClass;
 	 *	
@@ -60,7 +60,7 @@ namespace Unity.ReferenceRewriter
 	 *	           class [mscorlib]System.Collections.Generic.IEnumerator`1<object>,
 	 *	           [mscorlib]System.IDisposable
 	 *	
-	 *  The task of this class is find such methods and modify them to look like this:
+	 *	The task of this class is find such methods and modify them to look like this:
 	 *  
 	 *	.class nested private auto ansi sealed beforefieldinit '<GetResource>c__Iterator0`1'<(SomeBaseClass) TType>
 	 *	extends [mscorlib]System.Object
