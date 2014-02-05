@@ -1,4 +1,5 @@
 ﻿using Mono.Cecil;
+using System.Linq;
 
 namespace Unity.ReferenceRewriter
 {
@@ -94,12 +95,54 @@ namespace Unity.ReferenceRewriter
 		private static bool IsBroken(MethodDefinition method, out MethodDefinition overridenMethod)
 		{
 			overridenMethod = null;
-			return false;
+
+			if (!method.HasGenericParameters)
+			{
+				return false;
+			}
+
+			if (!method.IsVirtual)
+			{
+				return false;
+			}
+
+			if (!method.ReturnType.FullName.Equals(""))
+			{
+				return false;
+			}
+
+			overridenMethod = GetOverridenMethod(method);
+
+			if (overridenMethod == null)
+			{
+				return false;
+			}
+
+			return true;
 		}
 
 		private static MethodDefinition GetOverridenMethod(MethodDefinition overridingMethod)
 		{
-			return null;
+			MethodDefinition overridenMethod = null;
+			var declaringType = overridingMethod.DeclaringType;
+
+			while (true)
+			{
+				if (declaringType.BaseType == null)
+				{
+					return overridenMethod;
+				}
+
+				var declaringBaseType = declaringType.BaseType.Resolve();
+				var methodInBaseType = declaringBaseType.Methods.FirstOrDefault(x => x.FullName == overridingMethod.Name);
+
+				if (methodInBaseType != null)
+				{
+					overridingMethod = methodInBaseType;
+				}
+
+				declaringType = declaringBaseType;
+			}
 		}
 
 		private static void Fix(MethodDefinition method, MethodDefinition overridenMethod)
