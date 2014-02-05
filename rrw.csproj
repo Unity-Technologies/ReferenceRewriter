@@ -52,6 +52,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DebugSymbolFormat.cs" />
+    <Compile Include="EnumeratorGenericConstraintsFixer.cs" />
     <Compile Include="IMethodDefinitionVisitor.cs" />
     <Compile Include="IReferenceVisitor.cs" />
     <Compile Include="IRewriteStep.cs" />
