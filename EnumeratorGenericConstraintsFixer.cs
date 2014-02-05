@@ -69,49 +69,59 @@ namespace Unity.ReferenceRewriter
 	 *	           class [mscorlib]System.Collections.Generic.IEnumerator`1<object>,
 	 *	           [mscorlib]System.IDisposable
 	 */
-	static class EnumeratorGenericConstraintsFixer
+	class EnumeratorGenericConstraintsFixer : IRewriteStep
 	{
-		public static void Fix(ModuleDefinition module)
+		RewriteContext _context;
+
+		public void Execute(RewriteContext context)
 		{
-			foreach (var type in module.Types)
+			_context = context;
+
+			foreach (var type in _context.TargetModule.Types)
 			{
 				Fix(type);
 			}
 		}
 
-		private static void Fix(TypeDefinition type)
+		private void Fix(TypeDefinition type)
 		{
 			foreach (var method in type.Methods)
 			{
-				MethodDefinition overridenMethod;
-
-				if (IsBroken(method, out overridenMethod))
+				if (IsBroken(method))
 				{
-					Fix(method, overridenMethod);
+					Fix(method);
 				}
 			}
 		}
 
-		private static bool IsBroken(MethodDefinition method, out MethodDefinition overridenMethod)
+		private bool IsBroken(MethodDefinition method)
 		{
-			overridenMethod = null;
+			if (!method.HasBody)
+			{
+				return false;
+			}
 
 			if (!method.HasGenericParameters)
 			{
 				return false;
 			}
 
-			if (!method.IsVirtual)
+			if (!method.IsVirtual || method.IsAbstract)
 			{
 				return false;
 			}
 
-			if (!method.ReturnType.FullName.Equals(""))
+			if (!method.ReturnType.FullName.Equals("System.Collections.IEnumerator"))
 			{
 				return false;
 			}
 
-			overridenMethod = GetOverridenMethod(method);
+			if (method.GenericParameters.All(x => x.Constraints.Count == 0))
+			{
+				return false;
+			}
+
+			var overridenMethod = GetOverridenMethod(method);
 
 			if (overridenMethod == null)
 			{
@@ -121,7 +131,7 @@ namespace Unity.ReferenceRewriter
 			return true;
 		}
 
-		private static MethodDefinition GetOverridenMethod(MethodDefinition overridingMethod)
+		private MethodDefinition GetOverridenMethod(MethodDefinition overridingMethod)
 		{
 			MethodDefinition overridenMethod = null;
 			var declaringType = overridingMethod.DeclaringType;
@@ -134,20 +144,83 @@ namespace Unity.ReferenceRewriter
 				}
 
 				var declaringBaseType = declaringType.BaseType.Resolve();
-				var methodInBaseType = declaringBaseType.Methods.FirstOrDefault(x => x.FullName == overridingMethod.Name);
+				var baseMethodName = overridingMethod.FullName.Replace(overridingMethod.DeclaringType.FullName + "::",
+										declaringBaseType.FullName + "::");
+				var methodInBaseType = declaringBaseType.Methods.FirstOrDefault(x => x.FullName == baseMethodName);
 
 				if (methodInBaseType != null)
 				{
-					overridingMethod = methodInBaseType;
+					overridenMethod = methodInBaseType;
 				}
 
 				declaringType = declaringBaseType;
 			}
 		}
 
-		private static void Fix(MethodDefinition method, MethodDefinition overridenMethod)
+		private void Fix(MethodDefinition method)
 		{
+			var iteratorClass = FindIteratorClass(method);
 
+			if (iteratorClass == null)
+			{
+				return;
+			}
+
+			for (int i = 0; i < method.GenericParameters.Count; i++)
+			{
+				var methodParameter = method.GenericParameters[i];
+				var classParameter = iteratorClass.GenericParameters[i];
+
+				for (int j = 0; j < methodParameter.Constraints.Count; j++)
+				{
+					if (!classParameter.Constraints.Contains(methodParameter.Constraints[j]))
+					{
+						classParameter.Constraints.Add(methodParameter.Constraints[j]);
+
+						_context.RewriteTarget = true;
+					}
+				}
+			}
+		}
+
+		private TypeDefinition FindIteratorClass(MethodDefinition method)
+		{
+			var declaringType = method.DeclaringType;
+
+			foreach (var nestedType in declaringType.NestedTypes)
+			{
+				if (!nestedType.Name.Contains(method.Name))
+				{
+					continue;
+				}
+
+				if (!nestedType.HasGenericParameters)
+				{
+					continue;
+				}
+
+				if (nestedType.GenericParameters.Count != method.GenericParameters.Count)
+				{
+					continue;
+				}
+
+				for (int i = 0; i < nestedType.GenericParameters.Count; i++)
+				{
+					if (nestedType.GenericParameters[i].Name != method.GenericParameters[i].Name)
+					{
+						continue;
+					}
+				}
+
+				if (!method.Body.Variables.Any(x => x.VariableType.Name == nestedType.Name))
+				{
+					continue;
+				}
+
+				return nestedType;
+			}
+
+			return null;
 		}
 	}
 }

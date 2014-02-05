@@ -33,7 +33,8 @@ namespace Unity.ReferenceRewriter
 			return new RewriteOperation(
 				new RewriteAssemblyManifest(),
 				new RewriteTypeReferences(supportNamespaceMapper),
-				new RewriteMethodSpecMemberRefs());
+				new RewriteMethodSpecMemberRefs(),
+				new EnumeratorGenericConstraintsFixer());
 		}
 	}
 }
