@@ -50,7 +50,8 @@ namespace Unity.ReferenceRewriter
 				var memberReference = instruction.Operand as MemberReference;
 				if (memberReference != null)
 				{
-					if (memberReference.IsDefinition || memberReference.DeclaringType.IsGenericInstance)
+					if (memberReference.IsDefinition || memberReference.DeclaringType.IsGenericInstance 
+							|| memberReference.DeclaringType.IsArray)
 						continue;
 
 					var methodReference = memberReference as MethodReference;
