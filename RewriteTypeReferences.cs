@@ -73,8 +73,23 @@ namespace Unity.ReferenceRewriter
 			if (TryToResolveInSupport(type))
 				return;
 
-			if (type.Resolve() != null)
+			var resolvedType = type.Resolve();
+			if (resolvedType != null)
+			{
+				var targetAssembly = resolvedType.Module.Assembly;
+				if (type.Scope is AssemblyNameReference && targetAssembly.Name.FullName != (type.Scope as AssemblyNameReference).FullName)
+				{
+					var realType = type.Module.Import(resolvedType);
+
+					if (realType.Scope is AssemblyNameReference)
+					{
+						type.Scope = realType.Scope;
+						Context.RewriteTarget = true;
+					}
+				}
+
 				return;
+			}
 
 			if (TryToResolveInAlt(type))
 				return;
