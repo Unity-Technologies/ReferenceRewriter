@@ -43,15 +43,17 @@ namespace Unity.ReferenceRewriter
 					if (typeReference.IsArray || typeReference.IsGenericParameter || typeReference.IsGenericInstance)
 						continue;
 					if (IsSameScope(typeReference.Scope, method.DeclaringType.Scope))
+					{
 						instruction.Operand = typeReference.Resolve();
+						this.Context.RewriteTarget = true;
+					}
 					continue;
 				}
 
 				var memberReference = instruction.Operand as MemberReference;
 				if (memberReference != null)
 				{
-					if (memberReference.IsDefinition || memberReference.DeclaringType.IsGenericInstance 
-							|| memberReference.DeclaringType.IsArray)
+					if (memberReference.IsDefinition || memberReference.DeclaringType.IsGenericInstance || memberReference.DeclaringType.IsArray)
 						continue;
 
 					var methodReference = memberReference as MethodReference;
@@ -67,12 +69,16 @@ namespace Unity.ReferenceRewriter
 								foreach (var argument in genericInstanceMethod.GenericArguments)
 									genericInstanceMethodFixed.GenericArguments.Add(argument);
 								instruction.Operand = genericInstanceMethodFixed;
+								this.Context.RewriteTarget = true;
 							}
 						}
 						else
 						{
 							if (IsSameScope(methodReference.DeclaringType.Scope, method.DeclaringType.Scope))
+							{
 								instruction.Operand = methodReference.Resolve();
+								this.Context.RewriteTarget = true;
+							}
 						}
 						continue;
 					}
@@ -82,7 +88,10 @@ namespace Unity.ReferenceRewriter
 					if (fieldReference != null)
 					{
 						if (IsSameScope(fieldReference.DeclaringType.Scope, method.DeclaringType.Scope))
+						{
 							instruction.Operand = fieldReference.Resolve();
+							this.Context.RewriteTarget = true;
+						}
 						continue;
 					}
 
