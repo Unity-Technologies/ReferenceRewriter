@@ -116,7 +116,8 @@ namespace Unity.ReferenceRewriter
 				return false;
 			}
 
-			if (method.GenericParameters.All(x => x.Constraints.Count == 0))
+			if (method.GenericParameters.All(x => x.Constraints.Count == 0 && !x.HasDefaultConstructorConstraint
+				&& !x.HasNotNullableValueTypeConstraint && !x.HasReferenceTypeConstraint))
 			{
 				return false;
 			}
@@ -171,12 +172,13 @@ namespace Unity.ReferenceRewriter
 				var methodParameter = method.GenericParameters[i];
 				var classParameter = iteratorClass.GenericParameters[i];
 
+				ChangeConstraintAttributesIfNeeded(methodParameter, classParameter);
+
 				for (int j = 0; j < methodParameter.Constraints.Count; j++)
 				{
 					if (!classParameter.Constraints.Contains(methodParameter.Constraints[j]))
 					{
 						classParameter.Constraints.Add(methodParameter.Constraints[j]);
-
 						_context.RewriteTarget = true;
 					}
 				}
@@ -221,6 +223,27 @@ namespace Unity.ReferenceRewriter
 			}
 
 			return null;
+		}
+
+		private void ChangeConstraintAttributesIfNeeded(GenericParameter source, GenericParameter target)
+		{
+			if (target.HasDefaultConstructorConstraint != source.HasDefaultConstructorConstraint)
+			{
+				target.HasDefaultConstructorConstraint = source.HasDefaultConstructorConstraint;
+				_context.RewriteTarget = true;
+			}
+
+			if (target.HasNotNullableValueTypeConstraint != source.HasNotNullableValueTypeConstraint)
+			{
+				target.HasNotNullableValueTypeConstraint = source.HasNotNullableValueTypeConstraint;
+				_context.RewriteTarget = true;
+			}
+
+			if (target.HasReferenceTypeConstraint != source.HasReferenceTypeConstraint)
+			{
+				target.HasReferenceTypeConstraint = source.HasReferenceTypeConstraint;
+				_context.RewriteTarget = true;
+			}
 		}
 	}
 }
