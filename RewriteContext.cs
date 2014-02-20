@@ -125,9 +125,12 @@ namespace Unity.ReferenceRewriter
 				altModules.Add(pair.Key, modules);
 			}
 
+			var target = ModuleDefinition.ReadModule(targetModule, TargetModuleParameters(targetModule, symbolFormat, resolver));
+			resolver.RegisterSupportAssembly(target.Assembly);
+
 			return new RewriteContext
 			{
-				TargetModule = ModuleDefinition.ReadModule(targetModule, TargetModuleParameters(targetModule, symbolFormat, resolver)),
+				TargetModule = target,
 				SupportModule = support,
 				AltModules = altModules,
 				FrameworkPaths = frameworkPaths,
