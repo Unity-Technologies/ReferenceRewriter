@@ -1,4 +1,5 @@
-﻿using Mono.Cecil;
+﻿using System.Collections.Generic;
+using Mono.Cecil;
 using System.Linq;
 
 namespace Unity.ReferenceRewriter
@@ -157,19 +158,21 @@ namespace Unity.ReferenceRewriter
 				return;
 			}
 
-			for (int i = 0; i < method.GenericParameters.Count; i++)
+			// Generic parameters are matched by their name, not index
+			foreach (var parameter in method.GenericParameters)
 			{
-				var methodParameter = method.GenericParameters[i];
-				var classParameter = iteratorClass.GenericParameters[i];
-
-				ChangeConstraintAttributesIfNeeded(methodParameter, classParameter);
-
-				for (int j = 0; j < methodParameter.Constraints.Count; j++)
+				var methodParameter = parameter;
+				foreach (var classParameter in iteratorClass.GenericParameters.Where(x => x.FullName == methodParameter.FullName))
 				{
-					if (!classParameter.Constraints.Contains(methodParameter.Constraints[j]))
+					ChangeConstraintAttributesIfNeeded(methodParameter, classParameter);
+
+					foreach (var constraint in methodParameter.Constraints)
 					{
-						classParameter.Constraints.Add(methodParameter.Constraints[j]);
-						Context.RewriteTarget = true;
+						if (!classParameter.Constraints.Contains(constraint))
+						{
+							classParameter.Constraints.Add(constraint);
+							Context.RewriteTarget = true;
+						}
 					}
 				}
 			}
@@ -191,20 +194,20 @@ namespace Unity.ReferenceRewriter
 					continue;
 				}
 
-				if (nestedType.GenericParameters.Count != method.GenericParameters.Count)
+				if (nestedType.GenericParameters.Count < method.GenericParameters.Count)
 				{
 					continue;
 				}
 
-				for (int i = 0; i < nestedType.GenericParameters.Count; i++)
+				foreach (var methodParameter in method.GenericParameters)
 				{
-					if (nestedType.GenericParameters[i].Name != method.GenericParameters[i].Name)
+					if (nestedType.GenericParameters.All(x => x.Name != methodParameter.Name))
 					{
 						continue;
 					}
 				}
 
-				if (!method.Body.Variables.Any(x => x.VariableType.Name == nestedType.Name))
+				if (method.Body.Variables.All(x => x.VariableType.Name != nestedType.Name))
 				{
 					continue;
 				}
