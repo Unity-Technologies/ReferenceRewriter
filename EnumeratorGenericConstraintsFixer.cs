@@ -69,28 +69,18 @@ namespace Unity.ReferenceRewriter
 	 *	           class [mscorlib]System.Collections.Generic.IEnumerator`1<object>,
 	 *	           [mscorlib]System.IDisposable
 	 */
-	class EnumeratorGenericConstraintsFixer : IRewriteStep
+	class EnumeratorGenericConstraintsFixer : RewriteStep, IMethodDefinitionVisitor
 	{
-		RewriteContext _context;
-
-		public void Execute(RewriteContext context)
+		protected override void Run()
 		{
-			_context = context;
-
-			foreach (var type in _context.TargetModule.Types)
-			{
-				Fix(type);
-			}
+			MethodDefinitionDispatcher.DispatchOn(Context.TargetModule, this);
 		}
 
-		private void Fix(TypeDefinition type)
+		public void Visit(MethodDefinition method)
 		{
-			foreach (var method in type.Methods)
+			if (IsBroken(method))
 			{
-				if (IsBroken(method))
-				{
-					Fix(method);
-				}
+				Fix(method);
 			}
 		}
 
@@ -179,7 +169,7 @@ namespace Unity.ReferenceRewriter
 					if (!classParameter.Constraints.Contains(methodParameter.Constraints[j]))
 					{
 						classParameter.Constraints.Add(methodParameter.Constraints[j]);
-						_context.RewriteTarget = true;
+						Context.RewriteTarget = true;
 					}
 				}
 			}
@@ -230,19 +220,19 @@ namespace Unity.ReferenceRewriter
 			if (target.HasDefaultConstructorConstraint != source.HasDefaultConstructorConstraint)
 			{
 				target.HasDefaultConstructorConstraint = source.HasDefaultConstructorConstraint;
-				_context.RewriteTarget = true;
+				Context.RewriteTarget = true;
 			}
 
 			if (target.HasNotNullableValueTypeConstraint != source.HasNotNullableValueTypeConstraint)
 			{
 				target.HasNotNullableValueTypeConstraint = source.HasNotNullableValueTypeConstraint;
-				_context.RewriteTarget = true;
+				Context.RewriteTarget = true;
 			}
 
 			if (target.HasReferenceTypeConstraint != source.HasReferenceTypeConstraint)
 			{
 				target.HasReferenceTypeConstraint = source.HasReferenceTypeConstraint;
-				_context.RewriteTarget = true;
+				Context.RewriteTarget = true;
 			}
 		}
 	}
