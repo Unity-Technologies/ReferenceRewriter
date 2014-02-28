@@ -77,7 +77,8 @@ namespace Unity.ReferenceRewriter
 			if (resolvedType != null)
 			{
 				var targetAssembly = resolvedType.Module.Assembly;
-				if (type.Scope is AssemblyNameReference && targetAssembly.Name.FullName != (type.Scope as AssemblyNameReference).FullName)
+				var assemblyNameReference = type.Scope as AssemblyNameReference;
+				if ((assemblyNameReference != null) && (targetAssembly.Name.Name != assemblyNameReference.Name))
 				{
 					var realType = type.Module.Import(resolvedType);
 
