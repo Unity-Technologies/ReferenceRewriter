@@ -95,6 +95,9 @@ namespace Unity.ReferenceRewriter
 			if (TryToResolveInAlt(type))
 				return;
 
+			if (IsIgnoredType(type))
+				return;
+
 			Console.WriteLine("Error: type `{0}` doesn't exist in target framework. It is referenced from {1} at {2}.", 
 				type.FullName, type.Module.Name, referencingEntityName);
 		}
@@ -148,6 +151,14 @@ namespace Unity.ReferenceRewriter
 			return false;
 		}
 
+		private bool IsIgnoredType(TypeReference type)
+		{
+			IList<string> ignoredTypes;
+			if (!Context.IgnoredTypes.TryGetValue(type.Scope.Name, out ignoredTypes))
+				return false;
+			return ignoredTypes.Contains(type.FullName);
+		}
+
 		private void AddSupportReferenceIfNeeded(AssemblyNameReference support)
 		{
 			if (Context.TargetModule.AssemblyReferences.Any(r => r.FullName == support.FullName))
@@ -161,6 +172,9 @@ namespace Unity.ReferenceRewriter
 			if (field.Resolve() != null)
 				return;
 
+			if (IsIgnoredType(field.DeclaringType))
+				return;
+
 			Console.WriteLine("Error: field `{0}` doesn't exist in target framework. It is referenced from {1} at {2}.", 
 				field, field.Module.Name, referencingEntityName);
 		}
@@ -171,6 +185,9 @@ namespace Unity.ReferenceRewriter
 			ParamsMethod = null;
 
 			if (method.Resolve() != null || method.DeclaringType.IsArray || ResolveManually(method) != null)
+				return;
+
+			if (IsIgnoredType(method.DeclaringType))
 				return;
 
 			Console.WriteLine("Error: method `{0}` doesn't exist in target framework. It is referenced from {1} at {2}.",

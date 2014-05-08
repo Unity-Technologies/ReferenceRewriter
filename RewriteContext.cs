@@ -15,6 +15,7 @@ namespace Unity.ReferenceRewriter
 		public ModuleDefinition TargetModule { get; private set; }
 		public ModuleDefinition SupportModule { get; private set; }
 		public IDictionary<string, ModuleDefinition[]> AltModules { get; private set; }
+		public IDictionary<string, IList<string>> IgnoredTypes { get; private set; }
 		public string[] FrameworkPaths { get; private set; }
 		public IAssemblyResolver AssemblyResolver { get; private set; }
 		public Collection<string> StrongNameReferences { get; private set; }
@@ -76,7 +77,7 @@ namespace Unity.ReferenceRewriter
 			}
 		}
 
-		public static RewriteContext For(string targetModule, DebugSymbolFormat symbolFormat, string supportModule, string[] frameworkPaths, string platformPath, ICollection<string> strongNamedReferences, ICollection<string> winmdReferences, IDictionary<string, IList<string>> alt)
+		public static RewriteContext For(string targetModule, DebugSymbolFormat symbolFormat, string supportModule, string[] frameworkPaths, string platformPath, ICollection<string> strongNamedReferences, ICollection<string> winmdReferences, IDictionary<string, IList<string>> alt, IDictionary<string, IList<string>> ignore)
 		{
 			if (targetModule == null)
 				throw new ArgumentNullException("targetModule");
@@ -133,6 +134,7 @@ namespace Unity.ReferenceRewriter
 				TargetModule = target,
 				SupportModule = support,
 				AltModules = altModules,
+				IgnoredTypes = ignore,
 				FrameworkPaths = frameworkPaths,
 				AssemblyResolver = resolver,
 				StrongNameReferences = new Collection<string>(strongNamedReferences),

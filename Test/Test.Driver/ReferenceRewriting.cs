@@ -47,6 +47,7 @@ namespace Test.Driver
 				string.Empty,
 				new string[0],
 				new string[0], 
+				new Dictionary<string, IList<string>>(),
 				new Dictionary<string, IList<string>>());
 
 			var operation = RewriteOperation.Create(ns => ns.StartsWith("System") ? "Test.Support" + ns.Substring("System".Length) : ns);

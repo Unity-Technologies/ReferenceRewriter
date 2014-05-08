@@ -20,6 +20,7 @@ namespace Unity.ReferenceRewriter
 			var winmdReferences = "";
 			var symbolFormat = DebugSymbolFormat.None;
 			var alt = new Dictionary<string, IList<string>>();
+			var ignore = new Dictionary<string, IList<string>>();
 
 			var set = new OptionSet
 			{
@@ -33,6 +34,7 @@ namespace Unity.ReferenceRewriter
 				{ "winmdrefs=", "A comma separated list of assembly names that should be redirected to winmd references.", s => winmdReferences = s },
 				{ "dbg=", "File format of the debug symbols. Either none, mdb or pdb.", d => symbolFormat = SymbolFormat(d) },
 				{ "alt=", "A semicolon separated list of alternative namespace and assembly mappings.", a => AltFormat(alt, a) },
+				{ "ignore=", "A semicolon separated list of assembly qualified type names that should not be resolved.", i => IgnoreFormat(ignore, i) },
 
 				{ "?|h|help", h => help = true },
 			};
@@ -63,7 +65,7 @@ namespace Unity.ReferenceRewriter
                 var frameworkPaths = frameworkPath.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 				var strongNamedReferencesArray = strongNamedReferences.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 				var winmdReferencesArray = winmdReferences.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-				var context = RewriteContext.For(targetModule, symbolFormat, supportModule, frameworkPaths, platformPath, strongNamedReferencesArray, winmdReferencesArray, alt);
+				var context = RewriteContext.For(targetModule, symbolFormat, supportModule, frameworkPaths, platformPath, strongNamedReferencesArray, winmdReferencesArray, alt, ignore);
 
 				operation.Execute(context);
 
@@ -109,6 +111,30 @@ namespace Unity.ReferenceRewriter
 				}
 
 				assemblyNames.Add(assemblyName);
+			}
+		}
+
+		private static void IgnoreFormat(IDictionary<string, IList<string>> ignore, string i)
+		{
+			foreach (var pair in i.Split(';'))
+			{
+				var parts = pair.Split(new char[] { ',' }, 2);
+
+				if (parts.Length != 2)
+					throw new OptionException("Type name is not assembly qualified.", "ignore");
+
+				var typeName = parts[0];
+				var assemblyName = parts[1];
+
+				IList<string> typeNames;
+
+				if (!ignore.TryGetValue(assemblyName, out typeNames))
+				{
+					typeNames = new List<string>();
+					ignore.Add(assemblyName, typeNames);
+				}
+
+				typeNames.Add(typeName);
 			}
 		}
 
