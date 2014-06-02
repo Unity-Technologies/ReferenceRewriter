@@ -34,7 +34,9 @@ namespace Unity.ReferenceRewriter
 				new Tuple<string, string>(
 					"System.Exception",															"Windows.Foundation.HResult"),
 				new Tuple<string, string>(
-					"System.Uri",																"Windows.Foundation.Uri")
+					"System.Uri",																"Windows.Foundation.Uri"),
+				new Tuple<string, string>(
+					"System.EventHandler",														"Windows.Foundation.EventHandler")
 			};
 		}
 
