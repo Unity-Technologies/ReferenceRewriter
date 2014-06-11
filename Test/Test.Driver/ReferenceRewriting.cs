@@ -43,6 +43,7 @@ namespace Test.Driver
 				"Test.Target.dll",
 				DebugSymbolFormat.None,
 				"Test.Support.dll",
+				string.Empty,
 				new string[] { Path.GetDirectoryName(typeof(object).Assembly.Location) },
 				string.Empty,
 				new string[0],

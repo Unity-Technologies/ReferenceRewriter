@@ -13,6 +13,7 @@ namespace Unity.ReferenceRewriter
 			var targetModule = "";
 			var targetModuleOutput = "";
 			var supportModule = "";
+			var supportModulePartialNamespace = "";
 			var frameworkPath = "";
 			var platformPath = "";
 			var systemNamespace = "";
@@ -27,6 +28,7 @@ namespace Unity.ReferenceRewriter
 				{ "target=", "The target module to rewrite.", t => targetModule = t },
 				{ "output=", "Where to write the rewritten target module. Default is write over.", o => targetModuleOutput = o },
 				{ "support=", "The support module containing the replacement API.", s => supportModule = s },
+				{ "supportpartialns=", "Namespace in the support module that implements partial types.", s => supportModulePartialNamespace = s },
 				{ "framework=", "A comma separated list of the directories of the target framework.", f => frameworkPath = f },
 				{ "platform=", "Path to platform assembly.", p => platformPath = p },
 				{ "system=", "The support namespace for System.", s => systemNamespace = s },
@@ -65,7 +67,7 @@ namespace Unity.ReferenceRewriter
                 var frameworkPaths = frameworkPath.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 				var strongNamedReferencesArray = strongNamedReferences.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 				var winmdReferencesArray = winmdReferences.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-				var context = RewriteContext.For(targetModule, symbolFormat, supportModule, frameworkPaths, platformPath, strongNamedReferencesArray, winmdReferencesArray, alt, ignore);
+				var context = RewriteContext.For(targetModule, symbolFormat, supportModule, supportModulePartialNamespace, frameworkPaths, platformPath, strongNamedReferencesArray, winmdReferencesArray, alt, ignore);
 
 				operation.Execute(context);
 

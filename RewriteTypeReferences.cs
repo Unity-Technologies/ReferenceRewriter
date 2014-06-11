@@ -184,7 +184,7 @@ namespace Unity.ReferenceRewriter
 			MethodChanged = false;
 			ParamsMethod = null;
 
-			if (method.Resolve() != null || method.DeclaringType.IsArray || ResolveManually(method) != null)
+			if (method.Resolve() != null || method.DeclaringType.IsArray || TryToResolveInSupport(method) || ResolveManually(method) != null)
 				return;
 
 			if (IsIgnoredType(method.DeclaringType))
@@ -192,6 +192,34 @@ namespace Unity.ReferenceRewriter
 
 			Console.WriteLine("Error: method `{0}` doesn't exist in target framework. It is referenced from {1} at {2}.",
 				method, method.Module.Name, referencingEntityName);
+		}
+
+		private bool TryToResolveInSupport(MethodReference method)
+		{
+			if (string.IsNullOrEmpty(Context.SupportModulePartialNamespace))
+				return false;
+
+			var originalType = method.DeclaringType;
+			if (originalType.IsGenericInstance || originalType.HasGenericParameters)
+				return false;
+
+			var support = SupportAssemblyReference();
+
+			var ns = Context.SupportModulePartialNamespace;
+			if (!string.IsNullOrEmpty(originalType.Namespace))
+				ns += '.' + originalType.Namespace;
+			method.DeclaringType = new TypeReference(ns, originalType.Name, Context.TargetModule, support, originalType.IsValueType);
+
+			var resolved = method.Resolve();
+			if (resolved != null)
+			{
+				Context.RewriteTarget = true;
+				AddSupportReferenceIfNeeded(support);
+				return true;
+			}
+
+			method.DeclaringType = originalType;
+			return false;
 		}
 
 		private MethodDefinition ResolveManually(MethodReference method)
