@@ -38,7 +38,21 @@ namespace Unity.ReferenceRewriter
 				new Tuple<string, string>(
 					"System.EventHandler",														"Windows.Foundation.EventHandler"),
 				new Tuple<string, string>(
-					"System.Nullable",															"Windows.Foundation.IReference")
+					"System.Nullable",															"Windows.Foundation.IReference"),
+				new Tuple<string, string>(
+					"System.Collections.Specialized.INotifyCollectionChanged",					"Windows.UI.Xaml.Interop.INotifyCollectionChanged"),
+				new Tuple<string, string>(
+					"System.Collections.IList",													"Windows.UI.Xaml.Interop.IBindableVector"),
+				new Tuple<string, string>(
+					"System.Collections.IEnumerable",											"Windows.UI.Xaml.Interop.IBindableIterable"),
+				new Tuple<string, string>(
+					"System.Collections.Specialized.NotifyCollectionChangedAction",				"Windows.UI.Xaml.Interop.NotifyCollectionChangedAction"),
+				new Tuple<string, string>(
+					"System.Collections.Specialized.NotifyCollectionChangedEventHandler",		"Windows.UI.Xaml.Interop.NotifyCollectionChangedEventHandler"),
+				new Tuple<string, string>(
+					"System.Collections.Specialized.NotifyCollectionChangedEventArgs",			"Windows.UI.Xaml.Interop.NotifyCollectionChangedEventArgs"),
+				new Tuple<string, string>(
+					"System.Type",																"Windows.UI.Xaml.Interop.TypeName")
 			};
 		}
 
