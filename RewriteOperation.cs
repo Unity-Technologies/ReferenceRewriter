@@ -34,7 +34,9 @@ namespace Unity.ReferenceRewriter
 				new RewriteAssemblyManifest(),
 				new RewriteTypeReferences(supportNamespaceMapper),
 				new RewriteMethodSpecMemberRefs(),
-				new EnumeratorGenericConstraintsFixer());
+				new EnumeratorGenericConstraintsFixer(),
+				new RemoveStrongNamesFromAssemblyReferences()
+			);
 		}
 	}
 }

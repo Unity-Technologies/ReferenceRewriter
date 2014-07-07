@@ -45,11 +45,6 @@ namespace Unity.ReferenceRewriter
 					reference.Version = assembly.Name.Version;
 					reference.PublicKeyToken = Copy(assembly.Name.PublicKeyToken);
 				}
-				else if (!IsFrameworkAssembly(assembly) && ShouldRemoveStrongName(reference))
-				{
-					Context.RewriteTarget = true;
-					reference.PublicKeyToken = new byte[0];
-				}
 
 			}
 			catch (AssemblyResolutionException)
