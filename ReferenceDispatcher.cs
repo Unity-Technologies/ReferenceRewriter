@@ -94,6 +94,17 @@ namespace Unity.ReferenceRewriter
 						_visitor.RewriteObjectListToParamsCall(body, i);
 					}
 
+					// Can't callvirt on static methods
+					if (instruction.OpCode == OpCodes.Callvirt)
+					{
+						var targetMethod = instruction.Operand as MethodReference;
+
+						if (targetMethod != null && !targetMethod.HasThis)
+						{
+							instruction.OpCode = OpCodes.Call;
+						}
+					}
+
 					continue;
 				}
 
