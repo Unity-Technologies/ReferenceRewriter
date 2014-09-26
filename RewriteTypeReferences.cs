@@ -184,6 +184,9 @@ namespace Unity.ReferenceRewriter
 			MethodChanged = false;
 			ParamsMethod = null;
 
+			if (method.DeclaringType.Scope == SupportAssemblyReference() && TryToResolveInSupport(method))
+				return;
+
 			if (method.Resolve() != null || method.DeclaringType.IsArray || TryToResolveInSupport(method) || ResolveManually(method) != null)
 				return;
 
@@ -210,30 +213,40 @@ namespace Unity.ReferenceRewriter
 				ns += '.' + originalType.Namespace;
 			method.DeclaringType = new TypeReference(ns, originalType.Name, Context.TargetModule, support, originalType.IsValueType);
 
-			var resolved = method.Resolve();
+			MethodDefinition resolved = null;
+
+			// We can only change declaring type like this for static methods
+			if (!method.HasThis)
+			{
+				resolved = method.Resolve();
+			}
+
+			// If our method is instance, we can have a static method in support module that has explicit "this" parameter
+			if (resolved == null && method.HasThis)
+			{
+				method.HasThis = false;
+				method.Parameters.Insert(0, new ParameterDefinition(originalType));
+				resolved = method.Resolve();
+
+				// Our explicit "this" parameter can be of type System.Object
+				if (resolved == null)
+				{
+					method.Parameters[0] = new ParameterDefinition(method.DeclaringType.Module.TypeSystem.Object.Resolve());
+					resolved = method.Resolve();
+				}
+
+				if (resolved == null)
+				{
+					method.HasThis = true;
+					method.Parameters.RemoveAt(0);
+				}
+			}
+
 			if (resolved != null)
 			{
 				Context.RewriteTarget = true;
 				AddSupportReferenceIfNeeded(support);
 				return true;
-			}
-
-			// If our method is instance, we can have a static method in support module that has explicit "this" parameter
-			if (method.HasThis)
-			{
-				method.HasThis = false;
-				method.Parameters.Insert(0, new ParameterDefinition(originalType));
-
-				resolved = method.Resolve();
-				if (resolved != null)
-				{
-					Context.RewriteTarget = true;
-					AddSupportReferenceIfNeeded(support);
-					return true;
-				}
-
-				method.HasThis = true;
-				method.Parameters.RemoveAt(0);
 			}
 
 			method.DeclaringType = originalType;
