@@ -202,6 +202,8 @@ namespace Unity.ReferenceRewriter
 			if (string.IsNullOrEmpty(Context.SupportModulePartialNamespace))
 				return false;
 
+			method = method.GetElementMethod();
+
 			var originalType = method.DeclaringType;
 			if (originalType.IsGenericInstance || originalType.HasGenericParameters)
 				return false;

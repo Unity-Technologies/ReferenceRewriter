@@ -63,7 +63,7 @@ namespace Unity.ReferenceRewriter
 						if (genericInstanceMethod != null)
 						{
 							var elementMethod = genericInstanceMethod.ElementMethod.Resolve();
-							if (IsSameScope(elementMethod.DeclaringType.Scope, method.DeclaringType.Scope))
+							if ((elementMethod != null) && IsSameScope(elementMethod.DeclaringType.Scope, method.DeclaringType.Scope))
 							{
 								var genericInstanceMethodFixed = new GenericInstanceMethod(elementMethod);
 								foreach (var argument in genericInstanceMethod.GenericArguments)
