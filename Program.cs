@@ -15,6 +15,7 @@ namespace Unity.ReferenceRewriter
 			var supportModule = "";
 			var supportModulePartialNamespace = "";
 			var frameworkPath = "";
+			var additionalReference = "";
 			var platformPath = "";
 			var systemNamespace = "";
 			var strongNamedReferences = "";
@@ -29,7 +30,10 @@ namespace Unity.ReferenceRewriter
 				{ "output=", "Where to write the rewritten target module. Default is write over.", o => targetModuleOutput = o },
 				{ "support=", "The support module containing the replacement API.", s => supportModule = s },
 				{ "supportpartialns=", "Namespace in the support module that implements partial types.", s => supportModulePartialNamespace = s },
-				{ "framework=", "A comma separated list of the directories of the target framework.", f => frameworkPath = f },
+				{ "framework=", "A comma separated list of the directories of the target framework. Reference rewriter will assume that it will not process files in those directories",
+					f => frameworkPath = f },
+				{ "additionalreferences=", "A comma separated list of the directories to reference additionally. Reference rewriter will assume that it will process files in those directories",
+					ar => additionalReference = ar },
 				{ "platform=", "Path to platform assembly.", p => platformPath = p },
 				{ "system=", "The support namespace for System.", s => systemNamespace = s },
 				{ "snrefs=", "A comma separated list of assembly names that retain their strong names.", s => strongNamedReferences = s },
@@ -65,9 +69,10 @@ namespace Unity.ReferenceRewriter
 						: ns);
 
                 var frameworkPaths = frameworkPath.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+				var additionalReferences = additionalReference.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 				var strongNamedReferencesArray = strongNamedReferences.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 				var winmdReferencesArray = winmdReferences.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-				var context = RewriteContext.For(targetModule, symbolFormat, supportModule, supportModulePartialNamespace, frameworkPaths, platformPath, strongNamedReferencesArray, winmdReferencesArray, alt, ignore);
+				var context = RewriteContext.For(targetModule, symbolFormat, supportModule, supportModulePartialNamespace, frameworkPaths, additionalReferences, platformPath, strongNamedReferencesArray, winmdReferencesArray, alt, ignore);
 
 				operation.Execute(context);
 

@@ -78,7 +78,9 @@ namespace Unity.ReferenceRewriter
 			}
 		}
 
-		public static RewriteContext For(string targetModule, DebugSymbolFormat symbolFormat, string supportModule, string supportModulePartialNamespace, string[] frameworkPaths, string platformPath, ICollection<string> strongNamedReferences, ICollection<string> winmdReferences, IDictionary<string, IList<string>> alt, IDictionary<string, IList<string>> ignore)
+		public static RewriteContext For(string targetModule, DebugSymbolFormat symbolFormat, string supportModule, string supportModulePartialNamespace, 
+			string[] frameworkPaths, string[] additionalReferences, string platformPath, ICollection<string> strongNamedReferences, 
+			ICollection<string> winmdReferences, IDictionary<string, IList<string>> alt, IDictionary<string, IList<string>> ignore)
 		{
 			if (targetModule == null)
 				throw new ArgumentNullException("targetModule");
@@ -93,7 +95,13 @@ namespace Unity.ReferenceRewriter
 		        fullFrameworkPaths[i] = Path.GetFullPath(frameworkPaths[i]);
 		    }
 
-            var resolver = new RewriteResolver(targetModule, fullFrameworkPaths);
+			var resolver = new RewriteResolver(targetModule, fullFrameworkPaths);
+
+			foreach (var referenceDirectory in additionalReferences)
+			{
+				resolver.AddSearchDirectory(Path.GetFullPath(referenceDirectory));
+			}
+
 			var support = ModuleDefinition.ReadModule(supportModule, new ReaderParameters {AssemblyResolver = resolver});
 			resolver.RegisterSupportAssembly(support.Assembly);
 
