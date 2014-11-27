@@ -39,11 +39,12 @@ namespace Unity.ReferenceRewriter
 
 				var assembly = Context.AssemblyResolver.Resolve(reference);
 
-				if (IsFrameworkAssembly(assembly) && ShouldRewriteFrameworkReference(reference, assembly))
+				if ((reference.IsWindowsRuntime != assembly.Name.IsWindowsRuntime) || (IsFrameworkAssembly(assembly) && ShouldRewriteFrameworkReference(reference, assembly)))
 				{
 					Context.RewriteTarget = true;
 					reference.Version = assembly.Name.Version;
 					reference.PublicKeyToken = Copy(assembly.Name.PublicKeyToken);
+					reference.IsWindowsRuntime = assembly.Name.IsWindowsRuntime;
 				}
 
 			}

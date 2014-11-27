@@ -54,11 +54,9 @@ namespace Unity.ReferenceRewriter
 				}
 				catch
 				{
-					if (name.IsWindowsRuntime)
+					//if (name.IsWindowsRuntime)
 						return ResolveAndRegisterWinmd(name);
 				}
-
-				throw new AssemblyResolutionException(name);
 			}
 
 			private AssemblyDefinition ResolveAndRegisterWinmd(AssemblyNameReference name)
