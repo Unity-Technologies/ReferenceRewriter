@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Unity.ReferenceRewriter
 {
-	static class TypeAliases
+	public static class TypeAliases
 	{
 		private static readonly SortedSet<Tuple<string, string>> _aliases;
 
@@ -91,7 +91,7 @@ namespace Unity.ReferenceRewriter
 			return namesMatch || (templatesMatch && areAliases);
 		}
 
-		private static string[] GetTemplateArguments(string type)
+		public static string[] GetTemplateArguments(string type)
 		{
 			string template;
 
@@ -111,7 +111,51 @@ namespace Unity.ReferenceRewriter
 				throw new ArgumentException("Invalid type name!", type);
 			}
 
-			return template.Split(new char[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+			var arguments = new List<string>();
+			while (template.Length > 0)
+			{
+				int start = 0;
+				uint depth = 0;
+				string argument = null;
+				do
+				{
+					int idx = template.IndexOfAny(new char[] {',', '<', '>'}, start);
+					if (idx < 0)
+					{
+						argument = template;
+						template = "";
+					}
+					else
+					{
+						switch (template[idx])
+						{
+						case ',':
+							if (depth > 0)
+								start = idx + 1;
+							else
+							{
+								argument = template.Substring(0, idx);
+								template = template.Remove(0, idx + 1);
+							}
+							break;
+						case '<':
+							++depth;
+							start = idx + 1;
+							break;
+						case '>':
+							--depth;
+							start = idx + 1;
+							break;
+						}
+					}
+
+					if (!string.IsNullOrEmpty(argument))
+						arguments.Add(argument.Trim());
+				}
+				while (argument == null);
+			}
+
+			return arguments.ToArray();
 		}
 	}
 }
