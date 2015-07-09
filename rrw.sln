@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test.Target", "Test\Test.Ta
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test.Driver", "Test\Test.Driver\Test.Driver.csproj", "{B9E18B17-DD4D-457D-A7A1-1F1BE28B7A81}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test.UnitTests", "Test.UnitTests\Test.UnitTests.csproj", "{B3B269A8-E3BB-4FB2-987A-A66C516E39EA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test.UnitTests", "Test\Test.UnitTests\Test.UnitTests.csproj", "{B3B269A8-E3BB-4FB2-987A-A66C516E39EA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

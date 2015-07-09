@@ -54,7 +54,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\rrw.csproj">
+    <ProjectReference Include="..\..\rrw.csproj">
       <Project>{07911f00-c501-4f6d-a327-d51778fa10bb}</Project>
       <Name>rrw</Name>
     </ProjectReference>
