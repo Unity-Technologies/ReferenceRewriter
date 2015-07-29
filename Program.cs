@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Mono.Options;
 
 namespace Unity.ReferenceRewriter
 {
-	class Program
+	static class Program
 	{
 		static int Main(string[] args)
 		{
@@ -15,6 +16,7 @@ namespace Unity.ReferenceRewriter
 			var supportModule = "";
 			var supportModulePartialNamespace = "";
 			var frameworkPath = "";
+			var projectLockFile = "";
 			var additionalReference = "";
 			var platformPath = "";
 			var systemNamespace = "";
@@ -32,6 +34,7 @@ namespace Unity.ReferenceRewriter
 				{ "supportpartialns=", "Namespace in the support module that implements partial types.", s => supportModulePartialNamespace = s },
 				{ "framework=", "A comma separated list of the directories of the target framework. Reference rewriter will assume that it will not process files in those directories",
 					f => frameworkPath = f },
+				{ "lock=", "Path to project.lock.json file.", l => projectLockFile = l },
 				{ "additionalreferences=", "A comma separated list of the directories to reference additionally. Reference rewriter will assume that it will process files in those directories",
 					ar => additionalReference = ar },
 				{ "platform=", "Path to platform assembly.", p => platformPath = p },
@@ -55,7 +58,7 @@ namespace Unity.ReferenceRewriter
 				return 3;
 			}
 
-			if (help || new[] {targetModule, supportModule, frameworkPath, systemNamespace }.Any(string.IsNullOrWhiteSpace))
+			if (help || new[] {targetModule, supportModule, systemNamespace }.Any(string.IsNullOrWhiteSpace) || new[] {frameworkPath, projectLockFile}.All(string.IsNullOrWhiteSpace))
 			{
 				Usage(set);
 				return 2;
@@ -72,7 +75,7 @@ namespace Unity.ReferenceRewriter
 				var additionalReferences = additionalReference.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 				var strongNamedReferencesArray = strongNamedReferences.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 				var winmdReferencesArray = winmdReferences.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-				var context = RewriteContext.For(targetModule, symbolFormat, supportModule, supportModulePartialNamespace, frameworkPaths, additionalReferences, platformPath, strongNamedReferencesArray, winmdReferencesArray, alt, ignore);
+				var context = RewriteContext.For(targetModule, symbolFormat, supportModule, supportModulePartialNamespace, frameworkPaths, projectLockFile, additionalReferences, platformPath, strongNamedReferencesArray, winmdReferencesArray, alt, ignore);
 
 				operation.Execute(context);
 
@@ -149,6 +152,11 @@ namespace Unity.ReferenceRewriter
 		{
 			Console.WriteLine("rrw reference rewriter");
 			set.WriteOptionDescriptions(Console.Out);
+		}
+
+		public static string ConvertToWindowsPath(this string path)
+		{
+			return path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
 		}
 	}
 }

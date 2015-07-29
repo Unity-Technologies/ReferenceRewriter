@@ -45,6 +45,7 @@ namespace Test.Driver
 				"Test.Support.dll",
 				string.Empty,
 				new string[] { Path.GetDirectoryName(typeof(object).Assembly.Location) },
+				string.Empty,
 				new string[] {},
 				string.Empty,
 				new string[0],

@@ -23,61 +23,8 @@ namespace Unity.ReferenceRewriter
 		public Collection<string> WinmdReferences { get; private set; }
 		public DebugSymbolFormat DebugSymbolFormat { get; private set; }
 
-		class RewriteResolver : DefaultAssemblyResolver
-		{
-			public RewriteResolver(string targetModule, string frameworkPath)
-			{
-				AddSearchDirectory(Path.GetDirectoryName(targetModule));
-				AddSearchDirectory(frameworkPath);
-			}
-
-		    public RewriteResolver(string targetModule, string[] frameworkPaths)
-		    {
-				AddSearchDirectory(Path.GetDirectoryName(targetModule));
-
-		        foreach (var path in frameworkPaths)
-		        {
-		            AddSearchDirectory(path);
-		        }
-		    }
-
-		    public void RegisterSupportAssembly(AssemblyDefinition assembly)
-			{
-				RegisterAssembly(assembly);
-			}
-
-			public override AssemblyDefinition Resolve(AssemblyNameReference name)
-			{
-				try
-				{
-					return base.Resolve(name);
-				}
-				catch
-				{
-					//if (name.IsWindowsRuntime)
-						return ResolveAndRegisterWinmd(name);
-				}
-			}
-
-			private AssemblyDefinition ResolveAndRegisterWinmd(AssemblyNameReference name)
-			{
-				foreach (var dir in this.GetSearchDirectories())
-				{
-					string file = Path.Combine(dir, name.Name + ".winmd");
-					if (!File.Exists(file))
-						continue;
-
-					AssemblyDefinition def = AssemblyDefinition.ReadAssembly(file);
-					RegisterAssembly(def);
-					return def;
-				}
-
-				throw new AssemblyResolutionException(name);
-			}
-		}
-
 		public static RewriteContext For(string targetModule, DebugSymbolFormat symbolFormat, string supportModule, string supportModulePartialNamespace, 
-			string[] frameworkPaths, string[] additionalReferences, string platformPath, ICollection<string> strongNamedReferences, 
+			string[] frameworkPaths, string projectLockFile, string[] additionalReferences, string platformPath, ICollection<string> strongNamedReferences, 
 			ICollection<string> winmdReferences, IDictionary<string, IList<string>> alt, IDictionary<string, IList<string>> ignore)
 		{
 			if (targetModule == null)
@@ -85,28 +32,32 @@ namespace Unity.ReferenceRewriter
 			if (supportModule == null)
 				throw new ArgumentNullException("supportModule");
 
-            CheckFrameworkPaths(frameworkPaths);
+			if (string.IsNullOrEmpty(projectLockFile))
+				CheckFrameworkPaths(frameworkPaths);
 
-		    var fullFrameworkPaths = new string[frameworkPaths.Length];
-		    for (int i = 0; i < frameworkPaths.Length; i++)
+			var resolver = string.IsNullOrEmpty(projectLockFile) ? new SearchPathAssemblyResolver() : new NuGetAssemblyResolver(projectLockFile);
+
+			var targetDirectory = Path.GetDirectoryName(targetModule);
+			resolver.RegisterSearchPath(targetDirectory);
+
+		    foreach (var frameworkPath in frameworkPaths)
 		    {
-		        fullFrameworkPaths[i] = Path.GetFullPath(frameworkPaths[i]);
-		    }
-
-			var resolver = new RewriteResolver(targetModule, fullFrameworkPaths);
+		        var fullFrameworkPath = Path.GetFullPath(frameworkPath);
+				resolver.RegisterSearchPath(fullFrameworkPath);
+		    }			
 
 			foreach (var referenceDirectory in additionalReferences)
 			{
-				resolver.AddSearchDirectory(Path.GetFullPath(referenceDirectory));
+				resolver.RegisterSearchPath(Path.GetFullPath(referenceDirectory));
 			}
 
 			var support = ModuleDefinition.ReadModule(supportModule, new ReaderParameters {AssemblyResolver = resolver});
-			resolver.RegisterSupportAssembly(support.Assembly);
+			resolver.RegisterAssembly(support.Assembly);
 
 			if (!string.IsNullOrEmpty(platformPath))
 			{
 				var platform = ModuleDefinition.ReadModule(platformPath, new ReaderParameters {AssemblyResolver = resolver});
-				resolver.RegisterSupportAssembly(platform.Assembly);
+				resolver.RegisterAssembly(platform.Assembly);
 			}
 
 			var altModules = new Dictionary<string, ModuleDefinition[]>();
@@ -116,25 +67,13 @@ namespace Unity.ReferenceRewriter
 				var modules = new ModuleDefinition[pair.Value.Count];
 
 				for (var i = 0; i < modules.Length; ++i)
-				{
-				    string path = null;
-				    foreach (var frameworkPath in frameworkPaths)
-				    {
-				        path = Path.Combine(frameworkPath, (pair.Value[i] + ".dll"));
-
-				        if (File.Exists(path))
-				        {
-				            break;
-				        }
-				    }
-				    modules[i] = ModuleDefinition.ReadModule(path, new ReaderParameters { AssemblyResolver = resolver });
-				}
+					modules[i] = resolver.Resolve(pair.Key, new ReaderParameters { AssemblyResolver = resolver }).MainModule;
 
 				altModules.Add(pair.Key, modules);
 			}
 
 			var target = ModuleDefinition.ReadModule(targetModule, TargetModuleParameters(targetModule, symbolFormat, resolver));
-			resolver.RegisterSupportAssembly(target.Assembly);
+			resolver.RegisterAssembly(target.Assembly);
 
 			return new RewriteContext
 			{
@@ -188,7 +127,7 @@ namespace Unity.ReferenceRewriter
             }
 	    }
 
-		private static ReaderParameters TargetModuleParameters(string targetModule, DebugSymbolFormat symbolFormat, RewriteResolver resolver)
+		private static ReaderParameters TargetModuleParameters(string targetModule, DebugSymbolFormat symbolFormat, IAssemblyResolver resolver)
 		{
 			var targetParameters = new ReaderParameters { AssemblyResolver = resolver };
 
