@@ -67,7 +67,7 @@ namespace Unity.ReferenceRewriter
 				var modules = new ModuleDefinition[pair.Value.Count];
 
 				for (var i = 0; i < modules.Length; ++i)
-					modules[i] = resolver.Resolve(pair.Key, new ReaderParameters { AssemblyResolver = resolver }).MainModule;
+					modules[i] = resolver.Resolve(pair.Value[0], new ReaderParameters { AssemblyResolver = resolver }).MainModule;
 
 				altModules.Add(pair.Key, modules);
 			}
