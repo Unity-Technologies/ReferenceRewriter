@@ -28,7 +28,7 @@ namespace Unity.ReferenceRewriter
 
 		public AssemblyDefinition Resolve(string fullName)
 		{
-			return Resolve(fullName, new ReaderParameters());
+			return Resolve(fullName, new ReaderParameters() { AssemblyResolver = this });
 		}
 
 		public AssemblyDefinition Resolve(string fullName, ReaderParameters parameters)
@@ -38,7 +38,7 @@ namespace Unity.ReferenceRewriter
 
 		public AssemblyDefinition Resolve(AssemblyNameReference name)
 		{
-			return Resolve(name, new ReaderParameters());
+			return Resolve(name, new ReaderParameters() {AssemblyResolver = this});
 		}
 
 		public virtual AssemblyDefinition Resolve(AssemblyNameReference name, ReaderParameters parameters)
