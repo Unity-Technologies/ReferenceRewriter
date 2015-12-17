@@ -52,7 +52,9 @@ namespace Unity.ReferenceRewriter
 				new Tuple<string, string>(
 					"System.Collections.Specialized.NotifyCollectionChangedEventArgs",			"Windows.UI.Xaml.Interop.NotifyCollectionChangedEventArgs"),
 				new Tuple<string, string>(
-					"System.Type",																"Windows.UI.Xaml.Interop.TypeName")
+					"System.Type",																"Windows.UI.Xaml.Interop.TypeName"),
+				new Tuple<string, string>(
+					"System.Numerics.Matrix4x4",												"Windows.Foundation.Numerics.Matrix4x4")
 			};
 		}
 
